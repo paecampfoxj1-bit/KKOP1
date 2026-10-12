@@ -13,6 +13,7 @@ import { AddGuildModal } from './components/AddGuildModal';
 import { ChangePictureModal } from './components/ChangePictureModal';
 import { QuickPasteImageModal } from './components/QuickPasteImageModal';
 import { FirebaseModal } from './components/FirebaseModal';
+import { AiRaidCheckModal } from './components/AiRaidCheckModal';
 import { CodeViewer } from './components/CodeViewer';
 import { DeployGuide } from './components/DeployGuide';
 import { calculateWednesdayCycleInfo } from './utils/cycle';
@@ -116,6 +117,8 @@ export default function App() {
 
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isFirebaseModalOpen, setIsFirebaseModalOpen] = useState(false);
+  const [isAiCheckModalOpen, setIsAiCheckModalOpen] = useState(false);
+  const [aiCheckInitialImage, setAiCheckInitialImage] = useState<string>('');
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
   const [firebaseConfig, setFirebaseConfig] = useState<FirebaseConnectionConfig | null>(() => {
     const saved = localStorage.getItem('kkop_firebase_config');
@@ -422,6 +425,30 @@ export default function App() {
     }
   };
 
+  // AI Vision Raid Check Modal Handlers
+  const handleOpenAiRaidCheck = (initialImg?: string) => {
+    setAiCheckInitialImage(initialImg || '');
+    setIsAiCheckModalOpen(true);
+  };
+
+  const handleApplyAiStatuses = (updates: { guildId: string; status: 'beaten' | 'unbeaten' }[]) => {
+    const updated = guilds.map(g => {
+      const match = updates.find(u => u.guildId === g.id);
+      if (match) {
+        return {
+          ...g,
+          status: match.status,
+          beatenAt: match.status === 'beaten' ? (g.beatenAt || Date.now()) : null,
+          updatedAt: Date.now(),
+        };
+      }
+      return g;
+    });
+
+    saveGuilds(updated);
+    addToast(`อัปเดตสถานะเรดให้ ${updates.length} กิลด์ตามที่ AI ตรวจพบในรูปแล้ว! 🎉`, 'success');
+  };
+
   // Toggle Beaten status
   const handleToggleStatus = (id: string) => {
     const updated = guilds.map(g => {
@@ -670,6 +697,8 @@ export default function App() {
                 setIsAddModalOpen(true);
               }}
               onPasteImageClick={handlePasteImageButtonClick}
+              onOpenAiRaidCheck={() => handleOpenAiRaidCheck()}
+              onImageDroppedOrPasted={img => handleOpenAiRaidCheck(img)}
             />
 
             {/* Hint Banner for Ctrl+V Image Paste */}
@@ -825,6 +854,16 @@ export default function App() {
           saveGuilds(INITIAL_DEMO_GUILDS);
           addToast('รีเซ็ตข้อมูลตัวอย่างเริ่มต้นเรียบร้อย', 'info');
         }}
+      />
+
+      {/* AI Vision Raid Check Modal (เช็คว่ากิลไหนลงไปแล้วจากรูป) */}
+      <AiRaidCheckModal
+        isOpen={isAiCheckModalOpen}
+        onClose={() => setIsAiCheckModalOpen(false)}
+        guilds={guilds}
+        onApplyStatuses={handleApplyAiStatuses}
+        onSetSearchQuery={setSearchQuery}
+        initialImage={aiCheckInitialImage}
       />
 
       {/* Toast Notifications */}

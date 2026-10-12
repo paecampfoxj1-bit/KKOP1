@@ -152,10 +152,14 @@
     <div class="space-y-3.5">
       <!-- Search & Add Row -->
       <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <!-- Search Input -->
+        <!-- Search Input with Camera Button -->
         <div class="relative flex-1">
-          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-          <input type="text" id="searchInput" placeholder="ค้นหากิลด์, เลเวล, ของดรอป, บอส..." class="w-full bg-[#0c1220] border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors shadow-inner">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none"></i>
+          <input type="text" id="searchInput" placeholder="ค้นหากิลด์, เลเวล, ของดรอป, บอส..." class="w-full bg-[#0c1220] border border-slate-800 rounded-xl pl-10 pr-12 sm:pr-28 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors shadow-inner">
+          <button id="btnAiSearchPhoto" type="button" class="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 hover:text-white border border-indigo-500/30 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer shadow-xs" title="📷 ส่งรูปเพื่อถาม AI ว่ากิลไหนลงไปแล้วบ้าง">
+            <i class="fa-solid fa-camera text-indigo-400"></i>
+            <span class="hidden sm:inline text-[11px] font-semibold text-indigo-300">ถาม AI จากรูป</span>
+          </button>
         </div>
 
         <!-- Quick Paste Picture & Add Guild -->
@@ -523,6 +527,95 @@
 
       <div class="pt-3 border-t border-slate-800 flex items-center justify-end gap-2 shrink-0">
         <button id="btnCancelQuickPaste" class="px-4 py-2 text-xs text-slate-400 hover:text-white rounded-xl">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: AI Vision Raid Check (เช็คว่ากิลไหนลงไปแล้วจากรูป) -->
+  <div id="aiRaidCheckModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 hidden overflow-y-auto">
+    <div class="bg-[#0b101d] border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl relative my-auto">
+      <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between shrink-0 bg-gradient-to-r from-[#0d1424] to-[#121b33]">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 p-0.5 shadow-md flex items-center justify-center">
+            <div class="w-full h-full bg-[#080c16] rounded-[10px] flex items-center justify-center">
+              <i class="fa-solid fa-camera text-indigo-400"></i>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-bold text-white">AI ถามสถานะเรดจากรูปภาพ</h3>
+              <span class="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-2 py-0.5 rounded-full font-medium">Gemini 3.8 Flash</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">ส่งรูปแคปหน้าจอเพื่อถามว่า "กิลไหนลงไปแล้วบ้าง" ระบบจะสแกนและตรวจสอบให้ทันที</p>
+          </div>
+        </div>
+        <button id="btnCloseAiModal" class="text-slate-400 hover:text-white p-1.5 rounded-lg transition-colors">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs">
+        <div id="aiUploadZone" class="border-2 border-dashed border-slate-800 hover:border-indigo-500/50 rounded-2xl p-6 text-center cursor-pointer bg-[#070b16] transition-all">
+          <input type="file" id="aiFileInput" accept="image/*" class="hidden">
+          <div class="w-12 h-12 mx-auto rounded-xl bg-indigo-950/70 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-3">
+            <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+          </div>
+          <p class="text-sm font-semibold text-white">คลิกเพื่อเลือกภาพ หรือลากไฟล์มาวางที่นี่</p>
+          <p class="text-slate-400 mt-1">หรือกด <kbd class="px-1.5 py-0.5 bg-slate-900 border border-slate-700 rounded text-indigo-300 font-mono">Ctrl + V</kbd> เพื่อวางภาพแคปหน้าจอได้ทันที</p>
+        </div>
+
+        <div id="aiPreviewZone" class="hidden space-y-3">
+          <div class="relative rounded-xl overflow-hidden bg-black/60 border border-slate-800 flex items-center justify-center max-h-52">
+            <img id="aiImgPreview" src="" alt="Raid screen" class="max-h-52 object-contain w-auto rounded-lg">
+            <button id="btnAiChangeImg" class="absolute top-2 right-2 px-2.5 py-1 bg-slate-900/90 hover:bg-rose-950 text-slate-300 hover:text-rose-200 border border-slate-700 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-colors">
+              <i class="fa-solid fa-rotate-left"></i>
+              <span>เปลี่ยนรูป</span>
+            </button>
+          </div>
+
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1.5">คำถามที่ต้องการให้ AI วิเคราะห์:</label>
+            <div class="flex gap-2">
+              <input type="text" id="aiQuestionInput" value="กิลไหนลงไปแล้วบ้างจากรูปนี้?" class="flex-1 bg-[#070b16] border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-xs">
+              <button id="btnRunAiCheck" class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md">
+                <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+                <span>วิเคราะห์ภาพ</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="aiLoadingIndicator" class="hidden p-5 rounded-2xl bg-[#090f1e] border border-indigo-500/30 text-center space-y-2">
+          <div class="w-8 h-8 mx-auto border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+          <p class="text-sm font-bold text-white">AI กำลังอ่านและเปรียบเทียบกับรายชื่อกิลด์...</p>
+          <p class="text-xs text-slate-400">กำลังตรวจจับชื่อกิลด์และสถานะการลงเรดจากรูปภาพ</p>
+        </div>
+
+        <div id="aiResultArea" class="hidden space-y-3.5">
+          <div class="p-3.5 bg-gradient-to-r from-indigo-950/60 via-[#0d152b] to-purple-950/40 border border-indigo-500/40 rounded-xl space-y-2">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-sparkles text-amber-400"></i>
+              <span class="font-bold text-sm text-white">ผลการวิเคราะห์จาก AI:</span>
+            </div>
+            <p id="aiSummaryText" class="text-xs text-slate-200 leading-relaxed font-sans"></p>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-semibold text-slate-300 text-xs">กิลด์ที่ตรวจพบ:</span>
+              <button id="btnAiApplyAll" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                <i class="fa-solid fa-circle-check"></i>
+                <span>ปรับสถานะตาม AI ให้ทุกกิลด์ทันที</span>
+              </button>
+            </div>
+            <div id="aiDetectedGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-slate-800 flex items-center justify-between shrink-0 bg-[#070b16]">
+        <span class="text-[11px] text-slate-500">กด Ctrl+V เพื่อวางรูปภาพได้ทันที</span>
+        <button id="btnAiCloseBottom" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold">ปิด</button>
       </div>
     </div>
   </div>

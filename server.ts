@@ -3,6 +3,10 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
+import dotenv from 'dotenv';
+import { GoogleGenAI, Type } from '@google/genai';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -236,7 +240,151 @@ app.post('/api/guilds/reset-demo', (_req: Request, res: Response) => {
   res.json({ success: true, data: store });
 });
 
-// 5. Real-time Live Sync Stream via Server-Sent Events (SSE)
+// 5. AI Vision Raid Analysis: Check from image which guild has already raided/cleared
+app.post('/api/ai/check-raid-image', async (req: Request, res: Response) => {
+  try {
+    const { imageBase64, mimeType = 'image/png', userQuestion, guilds = [] } = req.body;
+
+    if (!imageBase64) {
+      return res.status(400).json({ success: false, message: 'กรุณาส่งรูปภาพเพื่อทำการตรวจสอบ' });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({
+        success: false,
+        message: 'ไม่พบ GEMINI_API_KEY บนเซิร์ฟเวอร์ กรุณาตรวจสอบการตั้งค่า',
+      });
+    }
+
+    const ai = new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        },
+      },
+    });
+
+    const cleanBase64 = imageBase64.replace(/^data:image\/[a-zA-Z+]+;base64,/, '');
+    const cleanMimeType = mimeType || 'image/png';
+
+    const systemPrompt = `คุณคือ AI ผู้ช่วยตรวจสอบและวิเคราะห์ภาพการตีเรดกิลด์ (Guild Sub-Clan Raid Tracker) สำหรับเกมแนวผจญภัย/ตีบอสเรด
+หน้าที่หลักของคุณ:
+1. กวาดสายตาอ่านข้อความและปุ่มในรูปภาพอย่างละเอียดเป็นพิเศษ โดยเฉพาะคำว่า "เข้าร่วมทันที" (Instant Join) หรือคำใกล้เคียง เช่น "เข้าร่วม", "Join", "เข้าร่วมทันที!"
+2. หาชื่อกิลด์ทั้งหมดที่มีปุ่มหรือคำว่า "เข้าร่วมทันที" อยู่ข้างๆ หรือในแถบข้อมูลของกิลด์นั้น
+3. เข้าใจกฎของระบบเรดในเกมนี้:
+   - กิลด์ที่มีปุ่มหรือคำว่า "เข้าร่วมทันที" คือ **"กิลด์ที่ยังไม่ได้ลงเรด / ยังเปิดให้เข้าตีได้ / ยังไม่เสร็จสิ้น"** (detectedStatus = 'unbeaten', hasInstantJoinButton = true)
+   - กิลด์ที่ไม่มีปุ่มเข้าร่วมทันที หรือมีสถานะ "สำเร็จแล้ว", "เคลียร์แล้ว", "จบแล้ว", "ได้รับรางวัลแล้ว", หรือมีคะแนนเต็มแล้ว คือ **"กิลด์ที่ลงไปแล้ว"** (detectedStatus = 'beaten', hasInstantJoinButton = false)
+4. สรุปอย่างชัดเจนและแม่นยำ:
+   - กิลด์ใดบ้างที่มีคำว่า "เข้าร่วมทันที"
+   - กิลด์ใดบ้างที่ยังไม่ได้ลง (Unbeaten)
+   - กิลด์ใดบ้างที่ลงไปแล้ว (Beaten)
+5. สรุปผลเป็นภาษาไทยที่กระชับ เป็นกันเอง อ่านเข้าใจง่ายทันที
+
+รายชื่อกิลด์ทั้งหมดในระบบปัจจุบัน:
+${JSON.stringify(guilds, null, 2)}
+
+คำถามหรือข้อสงสัยของผู้ใช้: "${userQuestion || 'จากรูปให้หาชื่อกิลด์ที่มีคำว่าเข้าร่วมทันที และดูว่ากิลด์ไหนยังไม่ได้ลง'}"`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.8-flash',
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              mimeType: cleanMimeType,
+              data: cleanBase64,
+            },
+          },
+          {
+            text: `ช่วยตรวจจากรูปนี้อย่างละเอียด: ${userQuestion || 'จากรูปให้หาชื่อกิลด์ที่มีคำว่าเข้าร่วมทันที และดูว่ากิลด์ไหนยังไม่ได้ลง'}`,
+          },
+        ],
+      },
+      config: {
+        systemInstruction: systemPrompt,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            summary: {
+              type: Type.STRING,
+              description: 'คำสรุปผลภาษาไทยชัดเจน ระบุชื่อกิลด์ที่มีคำว่า "เข้าร่วมทันที" และกิลด์ที่ยังไม่ได้ลง',
+            },
+            guildsWithJoinButton: {
+              type: Type.ARRAY,
+              description: 'รายชื่อกิลด์ทั้งหมดในรูปภาพที่มีคำว่า "เข้าร่วมทันที"',
+              items: { type: Type.STRING },
+            },
+            detectedGuilds: {
+              type: Type.ARRAY,
+              description: 'รายการกิลด์ที่ตรวจพบในรูป',
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  guildId: { type: Type.STRING, description: 'ID ของกิลด์ที่ตรงกับในระบบ (ถ้ามี)' },
+                  guildName: { type: Type.STRING, description: 'ชื่อกิลด์' },
+                  hasInstantJoinButton: {
+                    type: Type.BOOLEAN,
+                    description: 'เป็นจริงถ้าในรูปมีคำว่า "เข้าร่วมทันที" ปรากฏอยู่กับกิลด์นี้',
+                  },
+                  instantJoinTextFound: {
+                    type: Type.STRING,
+                    description: 'ข้อความปุ่มที่พบ เช่น "เข้าร่วมทันที"',
+                  },
+                  detectedStatus: {
+                    type: Type.STRING,
+                    description: 'สถานะที่พบ: "beaten" (ลงไปแล้ว/ตีแล้ว), "unbeaten" (ยังไม่ได้ลง), หรือ "unknown"',
+                  },
+                  confidence: { type: Type.STRING, description: 'ระดับความมั่นใจ: "high", "medium", "low"' },
+                  details: { type: Type.STRING, description: 'ข้อความหรือหลักฐานที่พบในภาพ เช่น มีปุ่มเข้าร่วมทันที, แถบสถานะ, ตัวเลขดาเมจ' },
+                },
+                required: ['guildName', 'detectedStatus', 'details'],
+              },
+            },
+            unbeatenRemaining: {
+              type: Type.ARRAY,
+              description: 'รายชื่อกิลด์ที่ยังไม่ได้ลงเรด (กิลด์ที่มีปุ่มเข้าร่วมทันที หรือยังไม่เสร็จ)',
+              items: { type: Type.STRING },
+            },
+            beatenGuilds: {
+              type: Type.ARRAY,
+              description: 'รายชื่อกิลด์ที่ลงไปแล้ว (ไม่มีปุ่มเข้าร่วมทันที / เคลียร์แล้ว)',
+              items: { type: Type.STRING },
+            },
+            advice: {
+              type: Type.STRING,
+              description: 'คำแนะนำเพิ่มเติมสำหรับหัวหน้ากิลด์หรือสมาชิก',
+            },
+          },
+          required: ['summary', 'detectedGuilds'],
+        },
+      },
+    });
+
+    const responseText = response.text || '{}';
+    let parsedResult;
+    try {
+      parsedResult = JSON.parse(responseText);
+    } catch {
+      parsedResult = { summary: responseText, detectedGuilds: [] };
+    }
+
+    res.json({
+      success: true,
+      data: parsedResult,
+    });
+  } catch (error: any) {
+    console.error('Gemini vision raid check error:', error);
+    res.status(500).json({
+      success: false,
+      message: error?.message || 'เกิดข้อผิดพลาดในการวิเคราะห์รูปภาพด้วย AI',
+    });
+  }
+});
+
+// 6. Real-time Live Sync Stream via Server-Sent Events (SSE)
 app.get('/api/events', (req: Request, res: Response) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');

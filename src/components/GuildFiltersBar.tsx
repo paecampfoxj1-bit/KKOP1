@@ -18,6 +18,8 @@ interface GuildFiltersBarProps {
   };
   onOpenAddModal: () => void;
   onPasteImageClick: () => void;
+  onOpenAiRaidCheck: () => void;
+  onImageDroppedOrPasted?: (imageBase64: string) => void;
 }
 
 export const GuildFiltersBar: React.FC<GuildFiltersBarProps> = ({
@@ -32,21 +34,75 @@ export const GuildFiltersBar: React.FC<GuildFiltersBarProps> = ({
   counts,
   onOpenAddModal,
   onPasteImageClick,
+  onOpenAiRaidCheck,
+  onImageDroppedOrPasted,
 }) => {
+  const handleSearchPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file && onImageDroppedOrPasted) {
+          e.preventDefault();
+          const reader = new FileReader();
+          reader.onload = () => {
+            if (typeof reader.result === 'string') {
+              onImageDroppedOrPasted(reader.result);
+            }
+          };
+          reader.readAsDataURL(file);
+          break;
+        }
+      }
+    }
+  };
+
+  const handleSearchDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/') && onImageDroppedOrPasted) {
+      e.preventDefault();
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          onImageDroppedOrPasted(reader.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <div className="space-y-3.5">
       {/* Top Search & Action Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        {/* Search Input */}
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+        {/* Search Input with Camera AI Check Icon */}
+        <div
+          className="relative flex-1"
+          onDragOver={e => e.preventDefault()}
+          onDrop={handleSearchDrop}
+        >
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
+            onPaste={handleSearchPaste}
             placeholder="ค้นหากิลด์, เลเวล, ของดรอป, บอส..."
-            className="w-full bg-[#0c1220] border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors shadow-inner"
+            className="w-full bg-[#0c1220] border border-slate-800 rounded-xl pl-10 pr-12 sm:pr-28 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors shadow-inner"
           />
+          {/* Camera Button for AI Vision Raid Check */}
+          <button
+            type="button"
+            onClick={onOpenAiRaidCheck}
+            className="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 bg-gradient-to-r from-indigo-500/15 to-purple-500/15 hover:from-indigo-500/25 hover:to-purple-500/25 text-indigo-300 hover:text-white border border-indigo-500/30 hover:border-indigo-500/60 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer shadow-xs group"
+            title="📷 ส่งรูปเพื่อตรวจหากิลด์ที่มีคำว่า 'เข้าร่วมทันที' และกิลด์ที่ยังไม่ได้ลงเรด"
+          >
+            <Camera className="w-3.5 h-3.5 text-indigo-400 group-hover:scale-110 transition-transform" />
+            <span className="hidden sm:inline text-[11px] font-semibold text-indigo-300">
+              ถาม AI จากรูป
+            </span>
+          </button>
         </div>
 
         {/* Change Picture (Ctrl+V) & Add Guild Button */}

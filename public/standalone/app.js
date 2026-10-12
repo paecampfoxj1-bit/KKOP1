@@ -1035,6 +1035,162 @@ function setupEventListeners() {
     renderQuickPasteGuildList(e.target.value);
   });
 
+  // AI Raid Check Modal Events
+  const aiModal = document.getElementById("aiRaidCheckModal");
+  const aiUploadZone = document.getElementById("aiUploadZone");
+  const aiPreviewZone = document.getElementById("aiPreviewZone");
+  const aiFileInput = document.getElementById("aiFileInput");
+  const aiImgPreview = document.getElementById("aiImgPreview");
+  const aiLoadingIndicator = document.getElementById("aiLoadingIndicator");
+  const aiResultArea = document.getElementById("aiResultArea");
+  let currentAiImageBase64 = null;
+  let currentAiDetectedResult = null;
+
+  function openAiModal(initialBase64) {
+    if (!aiModal) return;
+    aiModal.classList.remove("hidden");
+    if (initialBase64) {
+      setAiModalImage(initialBase64);
+    } else {
+      resetAiModal();
+    }
+  }
+
+  function closeAiModal() {
+    if (!aiModal) return;
+    aiModal.classList.add("hidden");
+  }
+
+  function resetAiModal() {
+    currentAiImageBase64 = null;
+    currentAiDetectedResult = null;
+    if (aiUploadZone) aiUploadZone.classList.remove("hidden");
+    if (aiPreviewZone) aiPreviewZone.classList.add("hidden");
+    if (aiLoadingIndicator) aiLoadingIndicator.classList.add("hidden");
+    if (aiResultArea) aiResultArea.classList.add("hidden");
+  }
+
+  function setAiModalImage(base64) {
+    currentAiImageBase64 = base64;
+    currentAiDetectedResult = null;
+    if (aiUploadZone) aiUploadZone.classList.add("hidden");
+    if (aiPreviewZone) aiPreviewZone.classList.remove("hidden");
+    if (aiImgPreview) aiImgPreview.src = base64;
+    if (aiLoadingIndicator) aiLoadingIndicator.classList.add("hidden");
+    if (aiResultArea) aiResultArea.classList.add("hidden");
+  }
+
+  document.getElementById("btnAiSearchPhoto")?.addEventListener("click", () => openAiModal());
+  document.getElementById("btnCloseAiModal")?.addEventListener("click", closeAiModal);
+  document.getElementById("btnAiCloseBottom")?.addEventListener("click", closeAiModal);
+
+  aiUploadZone?.addEventListener("click", () => aiFileInput?.click());
+  aiFileInput?.addEventListener("change", (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          setAiModalImage(reader.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  document.getElementById("btnAiChangeImg")?.addEventListener("click", () => resetAiModal());
+
+  document.getElementById("btnRunAiCheck")?.addEventListener("click", async () => {
+    if (!currentAiImageBase64) {
+      showToast("กรุณาเลือกรูปภาพก่อนวิเคราะห์", "warning");
+      return;
+    }
+
+    const question = document.getElementById("aiQuestionInput")?.value || "กิลไหนลงไปแล้วบ้างจากรูปนี้?";
+    if (aiLoadingIndicator) aiLoadingIndicator.classList.remove("hidden");
+    if (aiResultArea) aiResultArea.classList.add("hidden");
+
+    try {
+      const res = await fetch("/api/ai/check-raid-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageBase64: currentAiImageBase64,
+          userQuestion: question,
+          guilds: state.guilds,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.message || "เกิดข้อผิดพลาดในการวิเคราะห์");
+      }
+
+      currentAiDetectedResult = json.data;
+      if (aiLoadingIndicator) aiLoadingIndicator.classList.add("hidden");
+      if (aiResultArea) aiResultArea.classList.remove("hidden");
+
+      const summaryEl = document.getElementById("aiSummaryText");
+      if (summaryEl) summaryEl.textContent = json.data.summary || "ตรวจสอบเสร็จสิ้น";
+
+      const gridEl = document.getElementById("aiDetectedGrid");
+      if (gridEl) {
+        const detected = json.data.detectedGuilds || [];
+        if (detected.length === 0) {
+          gridEl.innerHTML = `<div class="col-span-2 text-center text-slate-400 p-3">ไม่พบชื่อกิลด์ในระบบที่ปรากฏในรูปภาพ</div>`;
+        } else {
+          gridEl.innerHTML = detected.map(dg => {
+            const isBeaten = dg.detectedStatus === "beaten";
+            return `
+              <div class="p-3 rounded-xl border ${isBeaten ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-200' : 'bg-amber-950/20 border-amber-500/30 text-amber-200'}">
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-white text-sm">${escapeHtml(dg.guildName)}</span>
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border ${isBeaten ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-amber-500/20 text-amber-300 border-amber-500/40'}">
+                    ${isBeaten ? '✓ ตีแล้ว / ลงแล้ว' : '○ ยังไม่ได้ลง'}
+                  </span>
+                </div>
+                <p class="text-[11px] text-slate-300 mt-1">${escapeHtml(dg.details)}</p>
+              </div>
+            `;
+          }).join("");
+        }
+      }
+    } catch (err) {
+      if (aiLoadingIndicator) aiLoadingIndicator.classList.add("hidden");
+      showToast(err.message || "ไม่สามารถวิเคราะห์ภาพได้", "warning");
+    }
+  });
+
+  document.getElementById("btnAiApplyAll")?.addEventListener("click", () => {
+    if (!currentAiDetectedResult || !currentAiDetectedResult.detectedGuilds) return;
+    const detected = currentAiDetectedResult.detectedGuilds;
+    let count = 0;
+    const updated = state.guilds.map(g => {
+      const match = detected.find(d =>
+        d.guildName.toLowerCase().trim() === g.name.toLowerCase().trim() ||
+        g.name.toLowerCase().includes(d.guildName.toLowerCase())
+      );
+      if (match && (match.detectedStatus === 'beaten' || match.detectedStatus === 'unbeaten')) {
+        count++;
+        return {
+          ...g,
+          status: match.detectedStatus,
+          beatenAt: match.detectedStatus === 'beaten' ? Date.now() : null,
+          updatedAt: Date.now(),
+        };
+      }
+      return g;
+    });
+
+    if (count > 0) {
+      saveDataToDatabase(updated);
+      showToast(`อัปเดตสถานะเรดให้ ${count} กิลด์ตาม AI สำเร็จ! 🎉`, "success");
+      closeAiModal();
+    } else {
+      showToast("ไม่พบกิลด์ในระบบที่ตรงกับในรูปภาพ", "warning");
+    }
+  });
+
   // Drop type select toggle
   document.getElementById("formDropType")?.addEventListener("change", (e) => {
     const noteEl = document.getElementById("formDropNote");

@@ -47,3 +47,22 @@ export interface FirebaseConnectionConfig {
   authDomain?: string;
   storageBucket?: string;
 }
+
+export interface AiDetectedGuild {
+  guildId?: string;
+  guildName: string;
+  detectedStatus: 'beaten' | 'unbeaten' | 'unknown';
+  hasInstantJoinButton?: boolean;
+  instantJoinTextFound?: string;
+  confidence?: 'high' | 'medium' | 'low';
+  details: string;
+}
+
+export interface AiRaidCheckResult {
+  summary: string;
+  detectedGuilds: AiDetectedGuild[];
+  guildsWithJoinButton?: string[];
+  unbeatenRemaining?: string[];
+  beatenGuilds?: string[];
+  advice?: string;
+}

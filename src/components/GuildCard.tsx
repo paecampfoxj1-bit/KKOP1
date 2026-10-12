@@ -154,32 +154,38 @@ export const GuildCard: React.FC<GuildCardProps> = ({
           </div>
         </div>
 
-        {/* Drop Type Badge */}
+        {/* Drop Type & Note Badges */}
         <div className="mt-3.5 flex items-center gap-2 flex-wrap">
           {item.dropType === 'inventory' && (
-            <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-[#04241d] text-emerald-300 border border-emerald-500/50 font-medium shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
               <span>1.ของเข้าตัว</span>
             </span>
           )}
 
           {item.dropType === 'guild' && (
-            <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-blue-950/60 text-blue-300 border border-blue-500/30 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+            <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-[#0c1f38] text-blue-300 border border-blue-500/50 font-medium shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-blue-400" />
               <span>2.เข้ากิล</span>
             </span>
           )}
 
           {item.dropType === 'other' && (
-            <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-amber-950/60 text-amber-300 border border-amber-500/30 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-              <span>3.อื่นๆ: {item.dropNote || 'คนอื่นตี'}</span>
+            <span className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-[#241707] text-amber-300 border border-amber-500/50 font-medium shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-amber-400" />
+              <span>3.อื่นๆ{item.dropNote ? `: ${item.dropNote}` : ''}</span>
             </span>
           )}
 
+          {/* Additional Note (หมายเหตุ) */}
           {item.note && (
-            <span className="text-[11px] text-slate-400 truncate max-w-[160px]" title={item.note}>
-              ({item.note})
+            <span
+              className="inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-[#1b170c] text-amber-200 border border-amber-500/40 font-medium shadow-xs"
+              title={`หมายเหตุ: ${item.note}`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              <span className="text-amber-400/90 font-semibold">หมายเหตุ:</span>
+              <span>{item.note}</span>
             </span>
           )}
         </div>

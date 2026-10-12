@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Clipboard, Plus, ArrowDownUp } from 'lucide-react';
+import { Search, Plus, ArrowDownUp, Camera, Image as ImageIcon } from 'lucide-react';
 import { DropType } from '../types';
 
 interface GuildFiltersBarProps {
@@ -17,7 +17,7 @@ interface GuildFiltersBarProps {
     beaten: number;
   };
   onOpenAddModal: () => void;
-  onQuickPaste: () => void;
+  onPasteImageClick: () => void;
 }
 
 export const GuildFiltersBar: React.FC<GuildFiltersBarProps> = ({
@@ -31,7 +31,7 @@ export const GuildFiltersBar: React.FC<GuildFiltersBarProps> = ({
   setSortBy,
   counts,
   onOpenAddModal,
-  onQuickPaste,
+  onPasteImageClick,
 }) => {
   return (
     <div className="space-y-3.5">
@@ -49,15 +49,15 @@ export const GuildFiltersBar: React.FC<GuildFiltersBarProps> = ({
           />
         </div>
 
-        {/* Quick Paste & Add Guild Button */}
-        <div className="flex items-center gap-2 justify-end">
+        {/* Change Picture (Ctrl+V) & Add Guild Button */}
+        <div className="flex items-center gap-2 justify-end flex-wrap sm:flex-nowrap">
           <button
-            onClick={onQuickPaste}
-            className="px-3 py-2 bg-[#0c1220] hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-xl text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer"
-            title="คลิกเพื่อพิมพ์ชื่อกิลด์ด่วน หรือกดปุ่ม Ctrl+V บนคีย์บอร์ดได้ทันที"
+            onClick={onPasteImageClick}
+            className="px-3 py-2 bg-[#0c1220] hover:bg-[#131b2f] border border-indigo-500/40 hover:border-indigo-500 text-indigo-300 rounded-xl text-xs font-medium flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+            title="กดปุ่ม Ctrl+V บนคีย์บอร์ด หรือคลิกที่นี่เพื่อวางและเปลี่ยนรูปภาพกิลด์"
           >
-            <Clipboard className="w-3.5 h-3.5 text-slate-400" />
-            <span>กด <kbd className="bg-slate-900 border border-slate-700 px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-200">Ctrl+V</kbd> เขียนชื่อกิลด์ได้ทันที</span>
+            <Camera className="w-3.5 h-3.5 text-indigo-400" />
+            <span>เปลี่ยนรูป: กด <kbd className="bg-slate-900 border border-slate-700 px-1.5 py-0.5 rounded text-[10px] font-mono text-indigo-200 shadow-xs">Ctrl+V</kbd> วางรูปได้</span>
           </button>
 
           <button
@@ -107,82 +107,68 @@ export const GuildFiltersBar: React.FC<GuildFiltersBarProps> = ({
             </button>
           </div>
 
-          {/* Loot / Drop Destination Tabs */}
-          <div className="flex items-center gap-1.5 text-xs overflow-x-auto scrollbar-none">
-            <span className="text-slate-400 text-xs font-medium mr-1 whitespace-nowrap">ของดรอป:</span>
-
+          {/* Drop Filter Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto text-xs py-1">
             <button
               onClick={() => setDropFilter('all')}
-              className={`px-3 py-1.5 rounded-xl border transition-colors cursor-pointer whitespace-nowrap ${
+              className={`px-2.5 py-1 rounded-lg border transition-colors cursor-pointer whitespace-nowrap ${
                 dropFilter === 'all'
-                  ? 'bg-slate-800 text-white border-slate-600 font-semibold'
-                  : 'bg-[#0c1220] text-slate-400 border-slate-800/80 hover:text-slate-200'
+                  ? 'bg-slate-800 border-slate-600 text-white font-medium'
+                  : 'bg-transparent border-slate-800 text-slate-400 hover:border-slate-700'
               }`}
             >
-              ทั้งหมด
+              ของดรอปทั้งหมด
             </button>
-
             <button
               onClick={() => setDropFilter('inventory')}
-              className={`px-3 py-1.5 rounded-xl border transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+              className={`px-2.5 py-1 rounded-lg border transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap ${
                 dropFilter === 'inventory'
-                  ? 'bg-emerald-950/70 text-emerald-300 border-emerald-500/50 font-semibold'
-                  : 'bg-[#0c1220] text-slate-400 border-slate-800/80 hover:text-slate-200'
+                  ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300 font-medium'
+                  : 'bg-transparent border-slate-800 text-slate-400 hover:border-slate-700'
               }`}
             >
-              <span>👛</span>
-              <span>ของเข้าตัว</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span>1.ของเข้าตัว</span>
             </button>
-
             <button
               onClick={() => setDropFilter('guild')}
-              className={`px-3 py-1.5 rounded-xl border transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+              className={`px-2.5 py-1 rounded-lg border transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap ${
                 dropFilter === 'guild'
-                  ? 'bg-blue-950/70 text-blue-300 border-blue-500/50 font-semibold'
-                  : 'bg-[#0c1220] text-slate-400 border-slate-800/80 hover:text-slate-200'
+                  ? 'bg-blue-950/80 border-blue-500/50 text-blue-300 font-medium'
+                  : 'bg-transparent border-slate-800 text-slate-400 hover:border-slate-700'
               }`}
             >
-              <span>🏰</span>
-              <span>เข้ากิล</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+              <span>2.เข้ากิล</span>
             </button>
-
             <button
               onClick={() => setDropFilter('other')}
-              className={`px-3 py-1.5 rounded-xl border transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+              className={`px-2.5 py-1 rounded-lg border transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap ${
                 dropFilter === 'other'
-                  ? 'bg-amber-950/70 text-amber-300 border-amber-500/50 font-semibold'
-                  : 'bg-[#0c1220] text-slate-400 border-slate-800/80 hover:text-slate-200'
+                  ? 'bg-amber-950/80 border-amber-500/50 text-amber-300 font-medium'
+                  : 'bg-transparent border-slate-800 text-slate-400 hover:border-slate-700'
               }`}
             >
-              <span>❓</span>
-              <span>อื่นๆ</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              <span>3.อื่นๆ</span>
             </button>
           </div>
         </div>
 
         {/* Sort Dropdown */}
-        <div className="relative">
-          <div className="flex items-center gap-1.5 bg-[#0c1220] border border-slate-800/80 rounded-xl px-3 py-1.5 text-xs text-slate-300">
-            <ArrowDownUp className="w-3.5 h-3.5 text-amber-400" />
-            <select
-              value={sortBy}
-              onChange={e => setSortBy(e.target.value as any)}
-              className="bg-transparent text-slate-200 text-xs focus:outline-none cursor-pointer pr-2"
-            >
-              <option value="unbeaten_level_desc" className="bg-slate-900 text-white">
-                ยังไม่ตีบนสุด · Lv. มาก ➔ น้อย
-              </option>
-              <option value="unbeaten_level_asc" className="bg-slate-900 text-white">
-                ยังไม่ตีบนสุด · Lv. น้อย ➔ มาก
-              </option>
-              <option value="beaten_first" className="bg-slate-900 text-white">
-                ตีแล้วบนสุด
-              </option>
-              <option value="name_asc" className="bg-slate-900 text-white">
-                ชื่อกิลด์ (ก-ฮ / A-Z)
-              </option>
-            </select>
-          </div>
+        <div className="flex items-center gap-2 text-xs">
+          <ArrowDownUp className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <span className="text-slate-400 hidden sm:inline">เรียงตาม:</span>
+          <select
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value as any)}
+            className="bg-[#0c1220] border border-slate-800 text-slate-300 rounded-xl px-3 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer"
+          >
+            <option value="unbeaten_level_desc">ยังไม่ตี (Lv. มากไปน้อย)</option>
+            <option value="unbeaten_level_asc">ยังไม่ตี (Lv. น้อยไปมาก)</option>
+            <option value="beaten_first">ตีแล้วก่อน</option>
+            <option value="name_asc">ชื่อกิลด์ (A-Z)</option>
+          </select>
         </div>
       </div>
     </div>

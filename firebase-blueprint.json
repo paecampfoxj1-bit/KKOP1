@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "GuildRaidItem": {
+      "title": "GuildRaidItem",
+      "description": "Information about a guild raid target, status, drop type, and picture",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique guild ID" },
+        "name": { "type": "string", "maxLength": 100, "description": "Guild name" },
+        "level": { "type": "number", "description": "Guild level or null" },
+        "status": { "type": "string", "enum": ["unbeaten", "beaten"], "description": "Raid status" },
+        "dropType": { "type": "string", "enum": ["inventory", "guild", "other"], "description": "Drop reward type" },
+        "dropNote": { "type": "string", "maxLength": 200, "description": "Drop note description" },
+        "avatarIcon": { "type": "string", "enum": ["dragon", "lion", "crows", "devil", "knight", "phoenix", "skull", "wolf"] },
+        "customImage": { "type": "string", "description": "Base64 data URL for custom avatar image" },
+        "note": { "type": "string", "maxLength": 500, "description": "General note" },
+        "beatenAt": { "type": "number", "description": "Timestamp when guild was beaten" },
+        "updatedAt": { "type": "number", "description": "Timestamp when guild was updated" }
+      },
+      "required": ["id", "name", "status", "dropType", "avatarIcon", "updatedAt"]
+    },
+    "RaidState": {
+      "title": "RaidState",
+      "description": "Global raid cycle tracking state for Wednesday 05:00 AM reset",
+      "type": "object",
+      "properties": {
+        "currentCycle": { "type": "string", "maxLength": 50, "description": "Active Wednesday cycle key" },
+        "lastResetAt": { "type": "number", "description": "Timestamp of last reset" },
+        "updatedAt": { "type": "number", "description": "Timestamp when state was updated" }
+      },
+      "required": ["currentCycle", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/guilds/{guildId}": {
+      "schema": "GuildRaidItem",
+      "description": "Collection of all clan and sub-clan guild raid targets"
+    },
+    "/system/{systemDocId}": {
+      "schema": "RaidState",
+      "description": "System state including current weekly reset cycle"
+    }
+  }
+}

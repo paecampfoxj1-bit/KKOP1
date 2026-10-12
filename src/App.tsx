@@ -1,6 +1,7 @@
 /**
  * KKop Guild Sub-Clan Raid Tracker & Attendance System
  * High-fidelity recreation matching user's reference UI with Wednesday 05:00 AM Auto-Reset & Firebase Sync
+ * Full support for changing pictures and pasting images directly via Ctrl+V or Drag-and-Drop
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -9,13 +10,21 @@ import { WednesdayBanner } from './components/WednesdayBanner';
 import { GuildFiltersBar } from './components/GuildFiltersBar';
 import { GuildCard } from './components/GuildCard';
 import { AddGuildModal } from './components/AddGuildModal';
-import { ExportModal } from './components/ExportModal';
+import { ChangePictureModal } from './components/ChangePictureModal';
+import { QuickPasteImageModal } from './components/QuickPasteImageModal';
 import { FirebaseModal } from './components/FirebaseModal';
 import { CodeViewer } from './components/CodeViewer';
 import { DeployGuide } from './components/DeployGuide';
 import { calculateWednesdayCycleInfo } from './utils/cycle';
+import { processImageFile } from './utils/image';
 import { GuildRaidItem, DropType, WeeklyCycleInfo, FirebaseConnectionConfig } from './types';
-import { ShieldAlert, UsersRound, Sparkles } from 'lucide-react';
+import { UsersRound, Share2, Copy, Check, X, Camera } from 'lucide-react';
+import {
+  subscribeToFirestore,
+  syncAllGuildsToFirestore,
+  deleteGuildFromFirestore,
+  syncCycleKeyToFirestore,
+} from './services/firestoreSync';
 
 // Initial default guilds exactly matching the screenshot
 const INITIAL_DEMO_GUILDS: GuildRaidItem[] = [
@@ -97,6 +106,14 @@ export default function App() {
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [guildToEdit, setGuildToEdit] = useState<GuildRaidItem | null>(null);
+
+  // Picture Modals
+  const [hoveredGuildId, setHoveredGuildId] = useState<string | null>(null);
+  const [selectedGuildForPicture, setSelectedGuildForPicture] = useState<GuildRaidItem | null>(null);
+  const [isChangePictureModalOpen, setIsChangePictureModalOpen] = useState(false);
+  const [isQuickPasteImageModalOpen, setIsQuickPasteImageModalOpen] = useState(false);
+  const [pastedImageForModal, setPastedImageForModal] = useState<string>('');
+
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isFirebaseModalOpen, setIsFirebaseModalOpen] = useState(false);
   const [isFirebaseConnected, setIsFirebaseConnected] = useState(false);
@@ -120,7 +137,7 @@ export default function App() {
     setToasts(prev => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
-    }, 3500);
+    }, 4000);
   }, []);
 
   // Update countdown clock every second
@@ -131,10 +148,116 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Save guilds to localStorage
+  const [isServerSyncConnected, setIsServerSyncConnected] = useState(false);
+
+  // Sync with Firebase Firestore in Real-time (everyone connects without login/permission)
+  useEffect(() => {
+    const unsubscribe = subscribeToFirestore(
+      (remoteGuilds) => {
+        if (remoteGuilds && remoteGuilds.length > 0) {
+          setGuilds(remoteGuilds);
+          localStorage.setItem('kkop_guild_items', JSON.stringify(remoteGuilds));
+        }
+      },
+      (remoteCycleKey) => {
+        if (remoteCycleKey) {
+          setActiveCycleKey(remoteCycleKey);
+          localStorage.setItem('kkop_active_cycle_key', remoteCycleKey);
+        }
+      },
+      (connected) => {
+        setIsFirebaseConnected(connected);
+      },
+      INITIAL_DEMO_GUILDS
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  // Sync with Server via Server-Sent Events (SSE) as instant relay
+  useEffect(() => {
+    let eventSource: EventSource | null = null;
+    try {
+      eventSource = new EventSource('/api/events');
+
+      eventSource.onopen = () => {
+        setIsServerSyncConnected(true);
+      };
+
+      eventSource.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          if (payload && payload.data && Array.isArray(payload.data.guilds)) {
+            setGuilds(payload.data.guilds);
+            localStorage.setItem('kkop_guild_items', JSON.stringify(payload.data.guilds));
+            if (payload.data.currentCycle) {
+              setActiveCycleKey(payload.data.currentCycle);
+              localStorage.setItem('kkop_active_cycle_key', payload.data.currentCycle);
+            }
+            if (payload.type === 'RESET') {
+              addToast(
+                payload.autoReset
+                  ? 'ระบบรีเซ็ตสถานะเรดอัตโนมัติประจำสัปดาห์ (วันพุธ 05:00 น.) แล้ว!'
+                  : 'สถานะเรดถูกรีเซ็ตเป็น "ยังไม่ได้ตี" ทุกกิลด์แล้ว!',
+                'info'
+              );
+            }
+          }
+        } catch (e) {
+          console.error('Failed to parse SSE event:', e);
+        }
+      };
+
+      eventSource.onerror = () => {
+        setIsServerSyncConnected(false);
+      };
+    } catch (e) {
+      console.warn('SSE not connected, working in local mode:', e);
+    }
+
+    // Initial fetch to get latest shared guilds from server
+    fetch('/api/guilds')
+      .then(res => res.json())
+      .then(json => {
+        if (json.success && json.data && Array.isArray(json.data.guilds)) {
+          setGuilds(json.data.guilds);
+          localStorage.setItem('kkop_guild_items', JSON.stringify(json.data.guilds));
+          if (json.data.currentCycle) {
+            setActiveCycleKey(json.data.currentCycle);
+            localStorage.setItem('kkop_active_cycle_key', json.data.currentCycle);
+          }
+          setIsServerSyncConnected(true);
+        }
+      })
+      .catch(() => {
+        // Fallback to local storage
+      });
+
+    return () => {
+      eventSource?.close();
+    };
+  }, [addToast]);
+
+  // Save guilds: updates local state + Firebase Firestore + broadcasts to all connected members!
   const saveGuilds = useCallback((newGuilds: GuildRaidItem[]) => {
     setGuilds(newGuilds);
     localStorage.setItem('kkop_guild_items', JSON.stringify(newGuilds));
+
+    // Real-time sync to Firebase Firestore
+    syncAllGuildsToFirestore(newGuilds).catch(err => {
+      console.warn('Firestore sync note:', err);
+    });
+
+    // Send update to server so all members see it in real-time
+    fetch('/api/guilds', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guilds: newGuilds }),
+    }).catch(err => {
+      console.warn('Server sync offline, saved to localStorage & Firebase:', err);
+    });
   }, []);
 
   // Auto Reset for Wednesday 05:00 AM (UTC+7)
@@ -150,6 +273,7 @@ export default function App() {
       setActiveCycleKey(newCycleKey);
       localStorage.setItem('kkop_active_cycle_key', newCycleKey);
       saveGuilds(resetGuilds);
+      syncCycleKeyToFirestore(newCycleKey, resetGuilds).catch(console.error);
 
       addToast(
         isManual
@@ -172,46 +296,130 @@ export default function App() {
     }
   }, [cycleInfo.cycleKey, activeCycleKey, performReset]);
 
-  // Keyboard shortcut Ctrl+V for quick add guild
+  // Global Paste Handler for Images (Ctrl + V)
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
-        // If not actively typing inside input or textarea
-        const activeTag = document.activeElement?.tagName.toLowerCase();
-        if (activeTag !== 'input' && activeTag !== 'textarea') {
-          e.preventDefault();
-          handleQuickPaste();
+    const handlePaste = async (e: ClipboardEvent) => {
+      // If modal is actively open and handling paste itself, let modal handle it
+      if (isChangePictureModalOpen || isAddModalOpen) return;
+
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      let imageFile: File | null = null;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          imageFile = items[i].getAsFile();
+          break;
+        }
+      }
+
+      if (imageFile) {
+        e.preventDefault();
+        try {
+          const base64 = await processImageFile(imageFile);
+
+          // If a specific guild is hovered by mouse
+          if (hoveredGuildId) {
+            const target = guilds.find(g => g.id === hoveredGuildId);
+            if (target) {
+              const updated = guilds.map(g =>
+                g.id === hoveredGuildId
+                  ? { ...g, customImage: base64, updatedAt: Date.now() }
+                  : g
+              );
+              saveGuilds(updated);
+              addToast(`เปลี่ยนรูปภาพของกิลด์ "${target.name}" สำเร็จแล้ว! 🎉 (จาก Ctrl+V)`, 'success');
+              return;
+            }
+          }
+
+          // If no specific guild hovered, open QuickPasteImageModal so user can select
+          setPastedImageForModal(base64);
+          setIsQuickPasteImageModalOpen(true);
+        } catch (err) {
+          console.error('Error handling pasted image:', err);
+          addToast('เกิดข้อผิดพลาดในการประมวลผลรูปภาพที่วาง', 'warning');
         }
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [guilds]);
 
-  const handleQuickPaste = () => {
-    const input = prompt('พิมพ์หรือวางชื่อกิลด์ที่ต้องการเพิ่ม (สามารถใส่หลายชื่อคั่นด้วยเครื่องหมายจุลภาค , หรือบรรทัดใหม่):');
-    if (!input || !input.trim()) return;
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [
+    guilds,
+    hoveredGuildId,
+    isChangePictureModalOpen,
+    isAddModalOpen,
+    saveGuilds,
+    addToast,
+  ]);
 
-    const names = input
-      .split(/[,\n]/)
-      .map(s => s.trim().toUpperCase())
-      .filter(Boolean);
+  // Handle changing picture from modal
+  const handleOpenChangePicture = (guild: GuildRaidItem) => {
+    setSelectedGuildForPicture(guild);
+    setIsChangePictureModalOpen(true);
+  };
 
-    if (names.length === 0) return;
+  const handleSaveGuildImage = (guildId: string, customImage: string | undefined) => {
+    const target = guilds.find(g => g.id === guildId);
+    const updated = guilds.map(g =>
+      g.id === guildId ? { ...g, customImage, updatedAt: Date.now() } : g
+    );
+    saveGuilds(updated);
+    addToast(
+      customImage
+        ? `อัปเดตรูปภาพของกิลด์ "${target?.name || ''}" สำเร็จ!`
+        : `คืนค่าสัญลักษณ์เริ่มต้นของกิลด์ "${target?.name || ''}" แล้ว`,
+      'success'
+    );
+  };
 
-    const icons: Array<GuildRaidItem['avatarIcon']> = ['dragon', 'lion', 'crows', 'devil', 'phoenix', 'wolf'];
-    const newItems: GuildRaidItem[] = names.map((name, i) => ({
-      id: 'g_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substring(2, 5),
-      name,
+  const handleDropImage = (guildId: string, imageBase64: string) => {
+    const target = guilds.find(g => g.id === guildId);
+    const updated = guilds.map(g =>
+      g.id === guildId ? { ...g, customImage: imageBase64, updatedAt: Date.now() } : g
+    );
+    saveGuilds(updated);
+    addToast(`เปลี่ยนรูปภาพของกิลด์ "${target?.name || ''}" สำเร็จแล้ว! 📸`, 'success');
+  };
+
+  // Quick paste modal actions
+  const handleApplyPastedImageToGuild = (guildId: string, image: string) => {
+    const target = guilds.find(g => g.id === guildId);
+    const updated = guilds.map(g =>
+      g.id === guildId ? { ...g, customImage: image, updatedAt: Date.now() } : g
+    );
+    saveGuilds(updated);
+    setIsQuickPasteImageModalOpen(false);
+    addToast(`เปลี่ยนรูปภาพของกิลด์ "${target?.name || ''}" เรียบร้อย! 🎉`, 'success');
+  };
+
+  const handleCreateNewWithImage = (image: string) => {
+    setIsQuickPasteImageModalOpen(false);
+    setGuildToEdit({
+      id: '',
+      name: '',
       level: 12,
       status: 'unbeaten',
       dropType: 'inventory',
-      avatarIcon: icons[i % icons.length],
+      avatarIcon: 'dragon',
+      customImage: image,
       updatedAt: Date.now(),
-    }));
+    });
+    setIsAddModalOpen(true);
+  };
 
-    saveGuilds([...guilds, ...newItems]);
-    addToast(`เพิ่มกิลด์สำเร็จ ${newItems.length} รายการ`, 'success');
+  // When clicking the "เปลี่ยนรูป (Ctrl+V)" button in filter bar
+  const handlePasteImageButtonClick = () => {
+    if (guilds.length > 0) {
+      // Open change picture modal for the first guild or active guild
+      const target = hoveredGuildId ? guilds.find(g => g.id === hoveredGuildId) : guilds[0];
+      if (target) {
+        handleOpenChangePicture(target);
+      }
+    } else {
+      setIsAddModalOpen(true);
+    }
   };
 
   // Toggle Beaten status
@@ -242,6 +450,7 @@ export default function App() {
     if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบกิลด์ "${target.name}"?`)) {
       const updated = guilds.filter(g => g.id !== id);
       saveGuilds(updated);
+      deleteGuildFromFirestore(id).catch(console.error);
       addToast(`ลบกิลด์ "${target.name}" เรียบร้อยแล้ว`, 'info');
     }
   };
@@ -261,6 +470,7 @@ export default function App() {
               dropType: data.dropType,
               dropNote: data.dropNote,
               avatarIcon: data.avatarIcon,
+              customImage: data.customImage,
               note: data.note,
               beatenAt: data.beatenAt ?? g.beatenAt,
               updatedAt: Date.now(),
@@ -279,6 +489,7 @@ export default function App() {
         dropType: data.dropType,
         dropNote: data.dropNote,
         avatarIcon: data.avatarIcon,
+        customImage: data.customImage,
         note: data.note,
         beatenAt: data.beatenAt || null,
         updatedAt: Date.now(),
@@ -299,11 +510,6 @@ export default function App() {
     localStorage.setItem('kkop_firebase_config', JSON.stringify(config));
     setIsFirebaseConnected(true);
     addToast('บันทึกการเชื่อมต่อ Firebase KKop สำเร็จ!', 'success');
-  };
-
-  const handleResetDemoData = () => {
-    saveGuilds(INITIAL_DEMO_GUILDS);
-    addToast('รีเซ็ตเป็นข้อมูลตัวอย่างเริ่มต้นเรียบร้อย', 'info');
   };
 
   // Filtered and Sorted Guilds
@@ -332,7 +538,6 @@ export default function App() {
     // Sorting
     list.sort((a, b) => {
       if (sortBy === 'unbeaten_level_desc') {
-        // Unbeaten first, then level high to low
         if (a.status !== b.status) {
           return a.status === 'unbeaten' ? -1 : 1;
         }
@@ -376,28 +581,23 @@ export default function App() {
     t += `⏳ ยังไม่ได้ตี: ${counts.unbeaten} กิลด์\n`;
     t += `------------------------------------\n\n`;
 
-    const unbeatenList = guilds.filter(g => g.status === 'unbeaten');
-    if (unbeatenList.length > 0) {
-      t += `⚠️ กิลด์ที่ยังไม่ได้ตี (${unbeatenList.length}):\n`;
-      unbeatenList.forEach((g, i) => {
-        const lvStr = g.level ? `Lv.${g.level}` : 'ไม่ระบุ Lv.';
-        const dropStr = g.dropType === 'inventory' ? 'ของเข้าตัว' : g.dropType === 'guild' ? 'เข้ากิล' : `อื่นๆ (${g.dropNote || '-'})`;
-        t += ` ${i + 1}. ${g.name} (${lvStr}) - ${dropStr}\n`;
+    const unbeaten = guilds.filter(g => g.status === 'unbeaten');
+    if (unbeaten.length > 0) {
+      t += `📌 กิลด์ที่ยังไม่ได้ตี:\n`;
+      unbeaten.forEach((g, i) => {
+        t += `${i + 1}. ${g.name} (${g.level ? `Lv.${g.level}` : 'ไม่ระบุเลเวล'}) - ${
+          g.dropType === 'inventory' ? 'ของเข้าตัว' : g.dropType === 'guild' ? 'เข้ากิล' : `อื่นๆ: ${g.dropNote || ''}`
+        }\n`;
       });
-      t += `\n`;
-    }
-
-    const beatenList = guilds.filter(g => g.status === 'beaten');
-    if (beatenList.length > 0) {
-      t += `✅ กิลด์ที่ตีแล้ว (${beatenList.length}):\n`;
-      beatenList.forEach(g => {
-        t += ` • ${g.name} (${g.level ? `Lv.${g.level}` : 'ไม่ระบุ Lv.'})\n`;
-      });
+    } else {
+      t += `🎉 ยอดเยี่ยม! สมาชิกตีครบทุกกิลด์แล้ว 🎉\n`;
     }
 
     t += `\n⏰ รีเซ็ตรอบถัดไป: วันพุธ เวลา 05:00 น. (UTC+7)`;
     return t;
   };
+
+  const [copiedText, setCopiedText] = useState(false);
 
   return (
     <div className="bg-[#080c16] text-slate-100 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
@@ -406,18 +606,51 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         isFirebaseConnected={isFirebaseConnected}
+        isServerSyncConnected={isServerSyncConnected}
         onOpenAddMember={() => {
           setGuildToEdit(null);
           setIsAddModalOpen(true);
         }}
         onOpenExport={() => setIsExportModalOpen(true)}
         onOpenFirebase={() => setIsFirebaseModalOpen(true)}
+        onCopyShareLink={() => {
+          navigator.clipboard.writeText(window.location.href);
+          addToast('คัดลอกลิงก์สำเร็จ! ส่งให้สมาชิกในกิลด์เข้าใช้งานได้ทันที ไม่ต้องขออนุญาต', 'success');
+        }}
       />
 
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
         {activeTab === 'tracker' && (
           <>
+            {/* Real-time Shared Link Banner */}
+            <div className="p-3.5 bg-gradient-to-r from-emerald-950/70 via-[#0a1828] to-indigo-950/70 border border-emerald-500/40 rounded-2xl flex items-center justify-between gap-3 text-xs flex-wrap shadow-lg shadow-emerald-950/20">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-500/20 text-emerald-300 rounded-xl border border-emerald-500/30">
+                  <UsersRound className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div>
+                  <div className="font-bold text-white flex items-center gap-2">
+                    <span>ทุกคนเข้าได้ทันที ไม่ต้องขออนุญาต &bull; ข้อมูลซิงค์ตรงกันทุกคนแบบเรียลไทม์</span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  </div>
+                  <p className="text-slate-300 mt-0.5">
+                    ส่งลิงก์นี้ให้สมาชิกกิลด์ ทุกคนสามารถกดติ๊กสถานะเรด หรือเปลี่ยนรูป แล้วเห็นอัปเดตตรงกันทันทีพร้อมกันทุกคน
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  addToast('คัดลอกลิงก์สำเร็จ! ส่งให้สมาชิกกิลด์เข้าใช้งานได้ทันที', 'success');
+                }}
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-emerald-600/20 shrink-0"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span>คัดลอกลิงก์ส่งกลุ่มกิลด์</span>
+              </button>
+            </div>
+
             {/* Wednesday 05:00 AM Auto-Reset Countdown Banner */}
             <WednesdayBanner cycleInfo={cycleInfo} onManualReset={handleManualReset} />
 
@@ -436,8 +669,29 @@ export default function App() {
                 setGuildToEdit(null);
                 setIsAddModalOpen(true);
               }}
-              onQuickPaste={handleQuickPaste}
+              onPasteImageClick={handlePasteImageButtonClick}
             />
+
+            {/* Hint Banner for Ctrl+V Image Paste */}
+            <div className="p-3 bg-gradient-to-r from-indigo-950/60 via-[#0e162d] to-purple-950/40 border border-indigo-500/30 rounded-2xl flex items-center justify-between gap-3 text-xs flex-wrap">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 bg-indigo-500/20 rounded-lg text-indigo-400">
+                  <Camera className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="font-semibold text-white">เปลี่ยนรูปภาพได้ง่ายๆ:</span>{' '}
+                  <span className="text-slate-300">
+                    ชี้เมาส์ที่การ์ดกิลด์ แล้วกด <kbd className="bg-slate-900 border border-slate-700 px-1.5 py-0.5 rounded text-[11px] font-mono text-indigo-300 shadow-xs">Ctrl + V</kbd> บนแป้นพิมพ์เพื่อวางรูปภาพได้ทันที หรือคลิกที่รูปเพื่อเลือกไฟล์
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={handlePasteImageButtonClick}
+                className="text-[11px] text-indigo-300 hover:text-white underline cursor-pointer"
+              >
+                ดูวิธีกดวางรูปภาพ
+              </button>
+            </div>
 
             {/* 2-Column Cards Grid matching screenshot */}
             {filteredGuilds.length === 0 ? (
@@ -460,9 +714,14 @@ export default function App() {
                   <GuildCard
                     key={guild.id}
                     item={guild}
+                    isSelected={hoveredGuildId === guild.id}
                     onToggleStatus={handleToggleStatus}
                     onEdit={handleOpenEdit}
                     onDelete={handleDelete}
+                    onChangePicture={handleOpenChangePicture}
+                    onDropImage={handleDropImage}
+                    onMouseEnter={() => setHoveredGuildId(guild.id)}
+                    onMouseLeave={() => setHoveredGuildId(prev => (prev === guild.id ? null : prev))}
                   />
                 ))}
               </div>
@@ -491,77 +750,98 @@ export default function App() {
         onSave={handleSaveGuild}
       />
 
+      {/* Change Picture Modal (Dedicated) */}
+      <ChangePictureModal
+        isOpen={isChangePictureModalOpen}
+        onClose={() => {
+          setIsChangePictureModalOpen(false);
+          setSelectedGuildForPicture(null);
+        }}
+        guild={selectedGuildForPicture}
+        onSaveImage={handleSaveGuildImage}
+      />
+
+      {/* Quick Paste Image Modal (When Ctrl+V pressed globally without hovering) */}
+      <QuickPasteImageModal
+        isOpen={isQuickPasteImageModalOpen}
+        onClose={() => setIsQuickPasteImageModalOpen(false)}
+        pastedImage={pastedImageForModal}
+        guilds={guilds}
+        onApplyToGuild={handleApplyPastedImageToGuild}
+        onCreateNewWithImage={handleCreateNewWithImage}
+      />
+
       {/* Export LINE / Discord Modal */}
       {isExportModalOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-[#0e1424] border border-slate-800 rounded-2xl w-full max-w-lg p-5 shadow-2xl relative">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-indigo-400" />
-                <span>สรุปสถานะเรดส่ง LINE / Discord</span>
-              </h3>
+              <div className="flex items-center gap-2">
+                <Share2 className="w-5 h-5 text-indigo-400" />
+                <h3 className="text-base font-bold text-white">สรุปรายงานส่งไลน์ / Discord</h3>
+              </div>
               <button
                 onClick={() => setIsExportModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
+                className="text-slate-400 hover:text-white p-1 rounded-lg"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="mt-4 space-y-3">
-              <p className="text-xs text-slate-400">
-                สามารถคัดลอกข้อความสรุปด้านล่างไปวางในกลุ่มกิลด์ได้ทันที:
-              </p>
+
+            <div className="mt-4">
               <textarea
                 readOnly
-                rows={11}
+                rows={12}
                 value={generateExportText()}
-                className="w-full bg-[#070b14] border border-slate-800 rounded-lg p-3 text-xs text-slate-200 font-mono focus:outline-none focus:border-indigo-500 resize-none selection:bg-indigo-500 selection:text-white"
+                className="w-full bg-[#080d18] border border-slate-800 rounded-xl p-3 text-xs text-slate-200 font-mono focus:outline-none"
               />
             </div>
-            <div className="mt-4 flex items-center justify-end gap-2 border-t border-slate-800 pt-3">
-              <button
-                onClick={() => setIsExportModalOpen(false)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs transition-colors cursor-pointer"
-              >
-                ปิด
-              </button>
+
+            <div className="mt-4 flex items-center justify-end gap-2">
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(generateExportText()).then(() => {
-                    addToast('คัดลอกข้อความสรุปเรียบร้อยแล้ว!', 'success');
-                  });
+                  navigator.clipboard.writeText(generateExportText());
+                  setCopiedText(true);
+                  setTimeout(() => setCopiedText(false), 2000);
+                  addToast('คัดลอกข้อความสรุปแล้ว นำไปวางใน LINE หรือ Discord ได้เลย!', 'success');
                 }}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-xs flex items-center gap-1.5 transition-colors shadow-md cursor-pointer"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-md"
               >
-                คัดลอกข้อความ
+                {copiedText ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                <span>{copiedText ? 'คัดลอกเรียบร้อย' : 'คัดลอกข้อความ'}</span>
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Firebase Modal */}
+      {/* Firebase Config Modal */}
       <FirebaseModal
         isOpen={isFirebaseModalOpen}
         onClose={() => setIsFirebaseModalOpen(false)}
         config={firebaseConfig}
         onSave={handleSaveFirebaseConfig}
-        onResetDemoData={handleResetDemoData}
+        onResetDemoData={() => {
+          saveGuilds(INITIAL_DEMO_GUILDS);
+          addToast('รีเซ็ตข้อมูลตัวอย่างเริ่มต้นเรียบร้อย', 'info');
+        }}
       />
 
-      {/* Toast Container */}
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+      {/* Toast Notifications */}
+      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm pointer-events-none">
         {toasts.map(toast => (
           <div
             key={toast.id}
-            className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl border shadow-xl text-xs backdrop-blur-md pointer-events-auto transition-all duration-300 transform translate-y-0 opacity-100 ${
+            className={`px-4 py-3 rounded-xl shadow-xl text-xs font-medium border flex items-center gap-2 pointer-events-auto transition-all ${
               toast.type === 'success'
-                ? 'bg-[#0f172a] border-emerald-500/40 text-emerald-200'
+                ? 'bg-emerald-950/95 text-emerald-200 border-emerald-500/40'
                 : toast.type === 'warning'
-                ? 'bg-[#0f172a] border-amber-500/40 text-amber-200'
-                : 'bg-[#0f172a] border-slate-700 text-slate-200'
+                ? 'bg-amber-950/95 text-amber-200 border-amber-500/40'
+                : 'bg-slate-900/95 text-slate-200 border-slate-700'
             }`}
           >
+            {toast.type === 'success' && <Check className="w-4 h-4 text-emerald-400 shrink-0" />}
+            {toast.type === 'warning' && <Camera className="w-4 h-4 text-amber-400 shrink-0" />}
             <span>{toast.message}</span>
           </div>
         ))}

@@ -135,6 +135,19 @@
       </div>
     </div>
 
+    <!-- Hint Banner for Ctrl+V Image Paste -->
+    <div class="p-3 bg-gradient-to-r from-indigo-950/60 via-[#0e162d] to-purple-950/40 border border-indigo-500/30 rounded-2xl flex items-center justify-between gap-3 text-xs flex-wrap">
+      <div class="flex items-center gap-2.5">
+        <div class="p-1.5 bg-indigo-500/20 rounded-lg text-indigo-400">
+          <i class="fa-solid fa-camera"></i>
+        </div>
+        <div>
+          <span class="font-semibold text-white">เปลี่ยนรูปภาพได้ง่ายๆ:</span>
+          <span class="text-slate-300">ชี้เมาส์ที่การ์ดกิลด์ แล้วกด <kbd class="bg-slate-900 border border-slate-700 px-1.5 py-0.5 rounded text-[11px] font-mono text-indigo-300">Ctrl + V</kbd> วางรูปภาพได้ทันที หรือคลิกที่รูปเพื่อเลือกไฟล์จากเครื่อง</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Filters, Search & Action Bar (Matching Screenshot) -->
     <div class="space-y-3.5">
       <!-- Search & Add Row -->
@@ -145,11 +158,11 @@
           <input type="text" id="searchInput" placeholder="ค้นหากิลด์, เลเวล, ของดรอป, บอส..." class="w-full bg-[#0c1220] border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors shadow-inner">
         </div>
 
-        <!-- Quick Paste & Add Guild -->
-        <div class="flex items-center gap-2 justify-end">
-          <button id="btnQuickPaste" class="px-3 py-2 bg-[#0c1220] hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-xl text-xs font-medium flex items-center gap-2 transition-colors">
-            <i class="fa-regular fa-clipboard text-slate-400"></i>
-            <span>กด <kbd class="bg-slate-900 border border-slate-700 px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-200">Ctrl+V</kbd> เขียนชื่อกิลด์ได้ทันที</span>
+        <!-- Quick Paste Picture & Add Guild -->
+        <div class="flex items-center gap-2 justify-end flex-wrap sm:flex-nowrap">
+          <button id="btnQuickChangePicture" class="px-3 py-2 bg-[#0c1220] hover:bg-[#131b2f] border border-indigo-500/40 hover:border-indigo-500 text-indigo-300 rounded-xl text-xs font-medium flex items-center gap-2 transition-all cursor-pointer">
+            <i class="fa-solid fa-camera text-indigo-400"></i>
+            <span>เปลี่ยนรูป: กด <kbd class="bg-slate-900 border border-slate-700 px-1.5 py-0.5 rounded text-[10px] font-mono text-indigo-200">Ctrl+V</kbd> วางรูปได้</span>
           </button>
 
           <button id="btnOpenAddGuild" class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-lg shadow-indigo-600/30 flex items-center gap-1.5 transition-all whitespace-nowrap">
@@ -255,9 +268,45 @@
       <form id="guildForm" class="mt-4 space-y-3.5 text-xs">
         <input type="hidden" id="formGuildId">
 
-        <!-- Icon Picker -->
+        <!-- Icon Picker & Ctrl+V Paste Area -->
         <div>
-          <label class="block text-slate-300 font-medium mb-1.5">เลือกสัญลักษณ์กิลด์ (Emblem)</label>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-slate-300 font-medium">เลือกสัญลักษณ์กิลด์ (Emblem)</label>
+            <span id="pasteToast" class="text-[11px] text-emerald-400 font-medium hidden items-center gap-1">
+              <i class="fa-solid fa-check"></i> วางรูปภาพสำเร็จ!
+            </span>
+          </div>
+
+          <!-- Custom Image Ctrl+V Paste Box -->
+          <div class="mb-2 p-2.5 rounded-xl border border-dashed border-indigo-500/40 bg-[#070b14] flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div id="customImagePreviewBox" class="w-11 h-11 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 shrink-0 overflow-hidden">
+                <i class="fa-regular fa-image text-indigo-400 text-lg"></i>
+              </div>
+              <div>
+                <div class="text-xs font-semibold text-white flex items-center gap-1.5">
+                  <span id="customImageLabel">เปลี่ยนรูป: กด Ctrl+V ได้ทันที</span>
+                  <span id="customImageBadge" class="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-500/40 px-1.5 py-0.2 rounded-full hidden">กำลังใช้งาน</span>
+                </div>
+                <p id="customImageSubtext" class="text-[11px] text-slate-400 mt-0.5">คัดลอกรูปภาพแล้วกด Ctrl+V หรือคลิกเลือกไฟล์</p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1">
+              <button type="button" id="btnRemoveCustomImage" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors hidden" title="ลบรูปภาพ">
+                <i class="fa-solid fa-trash-can text-xs"></i>
+              </button>
+              <button type="button" id="btnUploadImageFile" class="px-2.5 py-1.5 bg-[#0e1628] hover:bg-slate-800 text-indigo-300 border border-indigo-500/30 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-colors">
+                <i class="fa-solid fa-arrow-up-from-bracket text-xs"></i>
+                <span>เลือกไฟล์</span>
+              </button>
+            </div>
+
+            <input type="file" id="formFileInput" accept="image/*" class="hidden">
+            <input type="hidden" id="formCustomImage" value="">
+          </div>
+
+          <!-- Presets Grid -->
           <div class="grid grid-cols-4 gap-2" id="iconPicker">
             <!-- Rendered by JS -->
           </div>
@@ -378,6 +427,102 @@
           <button id="btnCancelFirebaseModal" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs transition-colors">ปิด</button>
           <button id="btnSaveFirebaseConfig" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-xs transition-colors">บันทึกการเชื่อมต่อ</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Change Guild Picture (Ctrl+V Supported) -->
+  <div id="changePictureModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#0e1424] border border-slate-800 rounded-2xl w-full max-w-md p-5 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3.5 border-b border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <div class="p-2 bg-indigo-950/70 border border-indigo-500/30 rounded-xl text-indigo-400">
+            <i class="fa-solid fa-camera"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <span id="cpGuildName">เปลี่ยนรูปกิลด์</span>
+            </h3>
+            <p class="text-[11px] text-slate-400">
+              กด <kbd class="bg-slate-900 border border-slate-700 px-1 py-0.5 rounded text-[10px] font-mono text-indigo-300">Ctrl+V</kbd> เพื่อวางรูปภาพได้ทันที
+            </p>
+          </div>
+        </div>
+        <button id="btnCloseChangePictureModal" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="mt-4 space-y-4">
+        <!-- Preview Box -->
+        <div class="flex items-center justify-center gap-6 p-4 rounded-xl bg-[#080c16] border border-slate-800/80">
+          <div class="text-center">
+            <div class="text-[11px] text-slate-400 mb-1.5 font-medium">รูปที่กำลังใช้งาน</div>
+            <div id="cpCurrentPreview" class="w-18 h-18 mx-auto flex items-center justify-center"></div>
+          </div>
+          <div id="cpRemoveBtnContainer" class="hidden">
+            <button id="btnCpRemoveImage" type="button" class="px-2.5 py-1.5 bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 border border-rose-500/30 rounded-lg text-xs flex items-center gap-1.5 transition-colors">
+              <i class="fa-solid fa-trash-can text-xs"></i>
+              <span>ใช้สัญลักษณ์เดิม</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Drop / Paste Zone -->
+        <div id="cpDropZone" class="p-6 rounded-2xl border-2 border-dashed border-indigo-500/40 bg-[#090e1c] hover:border-indigo-400/80 hover:bg-[#0c1224] transition-all cursor-pointer text-center relative overflow-hidden">
+          <div class="w-12 h-12 rounded-2xl bg-indigo-950/60 border border-indigo-500/30 text-indigo-400 flex items-center justify-center mx-auto mb-3 shadow-md">
+            <i class="fa-solid fa-upload text-xl"></i>
+          </div>
+          <div class="text-sm font-bold text-white flex items-center justify-center gap-2">
+            <span>กด</span>
+            <span class="px-2 py-0.5 bg-indigo-900/60 border border-indigo-500/40 text-indigo-200 rounded-lg font-mono text-xs shadow-sm">Ctrl + V</span>
+            <span>เพื่อวางรูปภาพ</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-1.5">
+            คัดลอกรูปภาพแล้วกดวาง หรือคลิกเพื่อเลือกไฟล์จากคอมพิวเตอร์/มือถือ
+          </p>
+          <input type="file" id="cpFileInput" accept="image/*" class="hidden">
+        </div>
+      </div>
+
+      <div class="mt-5 flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
+        <button id="btnCancelChangePicture" class="px-4 py-2 text-xs text-slate-400 hover:text-white rounded-xl">ยกเลิก</button>
+        <button id="btnSaveChangePicture" class="px-5 py-2 text-xs font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl shadow-lg shadow-indigo-600/30 flex items-center gap-1.5">
+          <i class="fa-solid fa-check"></i>
+          <span>บันทึกรูปภาพ</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Quick Paste Image from Global Ctrl+V -->
+  <div id="quickPasteImageModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#0e1424] border border-slate-800 rounded-2xl w-full max-w-lg p-5 shadow-2xl relative max-h-[90vh] flex flex-col">
+      <div class="flex items-start justify-between pb-3 border-b border-slate-800 shrink-0">
+        <div class="flex items-center gap-3">
+          <div id="qpImageThumbnail" class="w-12 h-12 rounded-xl bg-slate-900 border border-indigo-500/50 p-0.5 shadow-md relative overflow-hidden shrink-0"></div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-bold text-white">ตรวจพบรูปภาพจาก Ctrl+V!</h3>
+              <span class="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-medium">พร้อมใช้งาน</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">เลือกกิลด์ที่ต้องการเปลี่ยนรูปภาพนี้:</p>
+          </div>
+        </div>
+        <button id="btnCloseQuickPasteModal" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="my-3 shrink-0 relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+        <input type="text" id="qpSearchInput" placeholder="ค้นหากิลด์ที่ต้องการเปลี่ยนรูป..." class="w-full bg-[#080d1a] border border-slate-800 rounded-xl pl-8 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+      </div>
+
+      <div id="qpGuildsList" class="flex-1 overflow-y-auto space-y-2 pr-1 my-1 max-h-60"></div>
+
+      <div class="pt-3 border-t border-slate-800 flex items-center justify-end gap-2 shrink-0">
+        <button id="btnCancelQuickPaste" class="px-4 py-2 text-xs text-slate-400 hover:text-white rounded-xl">ปิดหน้าต่าง</button>
       </div>
     </div>
   </div>

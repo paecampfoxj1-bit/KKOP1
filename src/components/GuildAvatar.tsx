@@ -3,10 +3,23 @@ import { GuildIconType } from '../types';
 
 interface GuildAvatarProps {
   icon: GuildIconType;
+  customImage?: string;
   className?: string;
 }
 
-export const GuildAvatar: React.FC<GuildAvatarProps> = ({ icon, className = 'w-12 h-12' }) => {
+export const GuildAvatar: React.FC<GuildAvatarProps> = ({ icon, customImage, className = 'w-12 h-12' }) => {
+  if (customImage) {
+    return (
+      <div className={`${className} rounded-xl bg-[#121624] border border-indigo-500/40 p-0.5 shadow-md shadow-indigo-950/40 relative overflow-hidden flex items-center justify-center shrink-0`}>
+        <img
+          src={customImage}
+          alt="Emblem"
+          className="w-full h-full object-cover rounded-[10px]"
+        />
+      </div>
+    );
+  }
+
   switch (icon) {
     case 'dragon':
       return (

@@ -5,14 +5,40 @@ export const DeployGuide: React.FC = () => {
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Overview Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-amber-950/40 border border-amber-500/30 rounded-2xl p-5 shadow-xl">
+      <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950/40 border border-indigo-500/30 rounded-2xl p-5 shadow-xl">
         <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <Rocket className="w-5 h-5 text-amber-400" />
-          <span>คู่มือขั้นตอนการนำไปรันและ Deploy ใช้งานจริง</span>
+          <Rocket className="w-5 h-5 text-indigo-400" />
+          <span>คู่มือการใช้งาน: ทุกคนเข้าได้เลยไม่ต้องขออนุญาต & ลิ้งก์ข้อมูลกันทั้งหมด</span>
         </h2>
-        <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-          แอปพลิเคชันนี้ออกแบบมาให้พร้อมใช้งานได้ทันที มีเพียง 2 ไฟล์คือ <code className="text-amber-300 bg-slate-950 px-1 py-0.5 rounded font-mono">index.html</code> และ <code className="text-amber-300 bg-slate-950 px-1 py-0.5 rounded font-mono">app.js</code> คุณสามารถเลือกเปิดรันในเครื่อง หรือนำขึ้นเว็บออนไลน์ได้ฟรี 100% ตามขั้นตอนด้านล่างนี้
+        <p className="text-xs text-slate-300 mt-1.5 leading-relaxed">
+          ระบบนี้เปิดให้ทุกคนที่มีลิงก์เข้าถึงได้ทันที 100% <strong>โดยไม่ต้องลงทะเบียน, ไม่ต้องล็อกอิน, และไม่ต้องกดขอสิทธิ์อนุญาตใดๆ</strong> เมื่อสมาชิกคนใดคนหนึ่งกดติ๊ก "ตีแล้ว" หรือวางรูปภาพ ทุกคนจะเห็นอัปเดตตรงกันทันทีแบบเรียลไทม์
         </p>
+      </div>
+
+      {/* Zero Permission & Full Realtime Sync Highlight Card */}
+      <div className="bg-[#0b1325] border border-emerald-500/40 rounded-2xl p-5 shadow-lg space-y-3">
+        <div className="flex items-center gap-2 text-white font-bold text-sm">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+          <span>ทำไมทุกคนเข้าได้เลยโดยไม่ต้องขออนุญาต?</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 text-xs">
+          <div className="p-3 rounded-xl bg-[#070c18] border border-slate-800 space-y-1.5">
+            <div className="font-semibold text-emerald-300 flex items-center gap-1.5">
+              <span>🌐 เมื่อเปิดผ่านลิงก์แอปปัจจุบัน:</span>
+            </div>
+            <p className="text-slate-300 leading-relaxed">
+              เซิร์ฟเวอร์เปิดช่องทาง Real-time SSE (<code className="text-indigo-300">/api/events</code>) ไว้แบบสาธารณะ สมาชิกกิลด์ทุกคนที่เปิดลิงก์จะเชื่อมต่อเข้าห้องเดียวกันทันที แก้ไขข้อมูลปุ๊บ ทุกคนเห็นพร้อมกันใน 0.1 วินาที
+            </p>
+          </div>
+          <div className="p-3 rounded-xl bg-[#070c18] border border-slate-800 space-y-1.5">
+            <div className="font-semibold text-amber-300 flex items-center gap-1.5">
+              <span>🔥 เมื่อนำไฟล์ไปใช้กับ Firebase Realtime Database:</span>
+            </div>
+            <p className="text-slate-300 leading-relaxed">
+              กำหนด Security Rules เป็น <code className="text-amber-300 font-mono">.read: true, .write: true</code> ทำให้ใครก็ตามที่มีลิงก์เว็บ สามารถเปิดอ่านและบันทึกได้ทันทีโดยไม่ต้องร้องขอสิทธิ์
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Step 1: File Setup */}

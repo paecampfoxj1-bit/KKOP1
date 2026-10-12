@@ -1,4 +1,3 @@
-// Standalone source code for index.html and app.js matching the exact user UI reference
 export const STANDALONE_INDEX_HTML = `<!DOCTYPE html>
 <html lang="th" class="dark">
 <head>
@@ -136,6 +135,19 @@ export const STANDALONE_INDEX_HTML = `<!DOCTYPE html>
       </div>
     </div>
 
+    <!-- Hint Banner for Ctrl+V Image Paste -->
+    <div class="p-3 bg-gradient-to-r from-indigo-950/60 via-[#0e162d] to-purple-950/40 border border-indigo-500/30 rounded-2xl flex items-center justify-between gap-3 text-xs flex-wrap">
+      <div class="flex items-center gap-2.5">
+        <div class="p-1.5 bg-indigo-500/20 rounded-lg text-indigo-400">
+          <i class="fa-solid fa-camera"></i>
+        </div>
+        <div>
+          <span class="font-semibold text-white">เปลี่ยนรูปภาพได้ง่ายๆ:</span>
+          <span class="text-slate-300">ชี้เมาส์ที่การ์ดกิลด์ แล้วกด <kbd class="bg-slate-900 border border-slate-700 px-1.5 py-0.5 rounded text-[11px] font-mono text-indigo-300">Ctrl + V</kbd> วางรูปภาพได้ทันที หรือคลิกที่รูปเพื่อเลือกไฟล์จากเครื่อง</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Filters, Search & Action Bar (Matching Screenshot) -->
     <div class="space-y-3.5">
       <!-- Search & Add Row -->
@@ -146,11 +158,11 @@ export const STANDALONE_INDEX_HTML = `<!DOCTYPE html>
           <input type="text" id="searchInput" placeholder="ค้นหากิลด์, เลเวล, ของดรอป, บอส..." class="w-full bg-[#0c1220] border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors shadow-inner">
         </div>
 
-        <!-- Quick Paste & Add Guild -->
-        <div class="flex items-center gap-2 justify-end">
-          <button id="btnQuickPaste" class="px-3 py-2 bg-[#0c1220] hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-xl text-xs font-medium flex items-center gap-2 transition-colors">
-            <i class="fa-regular fa-clipboard text-slate-400"></i>
-            <span>กด <kbd class="bg-slate-900 border border-slate-700 px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-200">Ctrl+V</kbd> เขียนชื่อกิลด์ได้ทันที</span>
+        <!-- Quick Paste Picture & Add Guild -->
+        <div class="flex items-center gap-2 justify-end flex-wrap sm:flex-nowrap">
+          <button id="btnQuickChangePicture" class="px-3 py-2 bg-[#0c1220] hover:bg-[#131b2f] border border-indigo-500/40 hover:border-indigo-500 text-indigo-300 rounded-xl text-xs font-medium flex items-center gap-2 transition-all cursor-pointer">
+            <i class="fa-solid fa-camera text-indigo-400"></i>
+            <span>เปลี่ยนรูป: กด <kbd class="bg-slate-900 border border-slate-700 px-1.5 py-0.5 rounded text-[10px] font-mono text-indigo-200">Ctrl+V</kbd> วางรูปได้</span>
           </button>
 
           <button id="btnOpenAddGuild" class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-lg shadow-indigo-600/30 flex items-center gap-1.5 transition-all whitespace-nowrap">
@@ -162,7 +174,7 @@ export const STANDALONE_INDEX_HTML = `<!DOCTYPE html>
 
       <!-- Filters & Sort Row -->
       <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
-        <div class="flex flex-wrap items-center gap-2 sm:gap-4 flex-1">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 flex-1">
           <!-- Status Tabs -->
           <div class="inline-flex items-center p-1 bg-[#0c1220] rounded-xl border border-slate-800/80 text-xs">
             <button data-status="all" class="status-tab active px-3 py-1.5 rounded-lg font-semibold bg-indigo-600 text-white shadow-sm transition-colors">
@@ -256,9 +268,45 @@ export const STANDALONE_INDEX_HTML = `<!DOCTYPE html>
       <form id="guildForm" class="mt-4 space-y-3.5 text-xs">
         <input type="hidden" id="formGuildId">
 
-        <!-- Icon Picker -->
+        <!-- Icon Picker & Ctrl+V Paste Area -->
         <div>
-          <label class="block text-slate-300 font-medium mb-1.5">เลือกสัญลักษณ์กิลด์ (Emblem)</label>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-slate-300 font-medium">เลือกสัญลักษณ์กิลด์ (Emblem)</label>
+            <span id="pasteToast" class="text-[11px] text-emerald-400 font-medium hidden items-center gap-1">
+              <i class="fa-solid fa-check"></i> วางรูปภาพสำเร็จ!
+            </span>
+          </div>
+
+          <!-- Custom Image Ctrl+V Paste Box -->
+          <div class="mb-2 p-2.5 rounded-xl border border-dashed border-indigo-500/40 bg-[#070b14] flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div id="customImagePreviewBox" class="w-11 h-11 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 shrink-0 overflow-hidden">
+                <i class="fa-regular fa-image text-indigo-400 text-lg"></i>
+              </div>
+              <div>
+                <div class="text-xs font-semibold text-white flex items-center gap-1.5">
+                  <span id="customImageLabel">เปลี่ยนรูป: กด Ctrl+V ได้ทันที</span>
+                  <span id="customImageBadge" class="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-500/40 px-1.5 py-0.2 rounded-full hidden">กำลังใช้งาน</span>
+                </div>
+                <p id="customImageSubtext" class="text-[11px] text-slate-400 mt-0.5">คัดลอกรูปภาพแล้วกด Ctrl+V หรือคลิกเลือกไฟล์</p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1">
+              <button type="button" id="btnRemoveCustomImage" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors hidden" title="ลบรูปภาพ">
+                <i class="fa-solid fa-trash-can text-xs"></i>
+              </button>
+              <button type="button" id="btnUploadImageFile" class="px-2.5 py-1.5 bg-[#0e1628] hover:bg-slate-800 text-indigo-300 border border-indigo-500/30 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-colors">
+                <i class="fa-solid fa-arrow-up-from-bracket text-xs"></i>
+                <span>เลือกไฟล์</span>
+              </button>
+            </div>
+
+            <input type="file" id="formFileInput" accept="image/*" class="hidden">
+            <input type="hidden" id="formCustomImage" value="">
+          </div>
+
+          <!-- Presets Grid -->
           <div class="grid grid-cols-4 gap-2" id="iconPicker">
             <!-- Rendered by JS -->
           </div>
@@ -383,17 +431,116 @@ export const STANDALONE_INDEX_HTML = `<!DOCTYPE html>
     </div>
   </div>
 
+  <!-- Modal: Change Guild Picture (Ctrl+V Supported) -->
+  <div id="changePictureModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#0e1424] border border-slate-800 rounded-2xl w-full max-w-md p-5 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3.5 border-b border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <div class="p-2 bg-indigo-950/70 border border-indigo-500/30 rounded-xl text-indigo-400">
+            <i class="fa-solid fa-camera"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <span id="cpGuildName">เปลี่ยนรูปกิลด์</span>
+            </h3>
+            <p class="text-[11px] text-slate-400">
+              กด <kbd class="bg-slate-900 border border-slate-700 px-1 py-0.5 rounded text-[10px] font-mono text-indigo-300">Ctrl+V</kbd> เพื่อวางรูปภาพได้ทันที
+            </p>
+          </div>
+        </div>
+        <button id="btnCloseChangePictureModal" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="mt-4 space-y-4">
+        <!-- Preview Box -->
+        <div class="flex items-center justify-center gap-6 p-4 rounded-xl bg-[#080c16] border border-slate-800/80">
+          <div class="text-center">
+            <div class="text-[11px] text-slate-400 mb-1.5 font-medium">รูปที่กำลังใช้งาน</div>
+            <div id="cpCurrentPreview" class="w-18 h-18 mx-auto flex items-center justify-center"></div>
+          </div>
+          <div id="cpRemoveBtnContainer" class="hidden">
+            <button id="btnCpRemoveImage" type="button" class="px-2.5 py-1.5 bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 border border-rose-500/30 rounded-lg text-xs flex items-center gap-1.5 transition-colors">
+              <i class="fa-solid fa-trash-can text-xs"></i>
+              <span>ใช้สัญลักษณ์เดิม</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Drop / Paste Zone -->
+        <div id="cpDropZone" class="p-6 rounded-2xl border-2 border-dashed border-indigo-500/40 bg-[#090e1c] hover:border-indigo-400/80 hover:bg-[#0c1224] transition-all cursor-pointer text-center relative overflow-hidden">
+          <div class="w-12 h-12 rounded-2xl bg-indigo-950/60 border border-indigo-500/30 text-indigo-400 flex items-center justify-center mx-auto mb-3 shadow-md">
+            <i class="fa-solid fa-upload text-xl"></i>
+          </div>
+          <div class="text-sm font-bold text-white flex items-center justify-center gap-2">
+            <span>กด</span>
+            <span class="px-2 py-0.5 bg-indigo-900/60 border border-indigo-500/40 text-indigo-200 rounded-lg font-mono text-xs shadow-sm">Ctrl + V</span>
+            <span>เพื่อวางรูปภาพ</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-1.5">
+            คัดลอกรูปภาพแล้วกดวาง หรือคลิกเพื่อเลือกไฟล์จากคอมพิวเตอร์/มือถือ
+          </p>
+          <input type="file" id="cpFileInput" accept="image/*" class="hidden">
+        </div>
+      </div>
+
+      <div class="mt-5 flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
+        <button id="btnCancelChangePicture" class="px-4 py-2 text-xs text-slate-400 hover:text-white rounded-xl">ยกเลิก</button>
+        <button id="btnSaveChangePicture" class="px-5 py-2 text-xs font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl shadow-lg shadow-indigo-600/30 flex items-center gap-1.5">
+          <i class="fa-solid fa-check"></i>
+          <span>บันทึกรูปภาพ</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Quick Paste Image from Global Ctrl+V -->
+  <div id="quickPasteImageModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#0e1424] border border-slate-800 rounded-2xl w-full max-w-lg p-5 shadow-2xl relative max-h-[90vh] flex flex-col">
+      <div class="flex items-start justify-between pb-3 border-b border-slate-800 shrink-0">
+        <div class="flex items-center gap-3">
+          <div id="qpImageThumbnail" class="w-12 h-12 rounded-xl bg-slate-900 border border-indigo-500/50 p-0.5 shadow-md relative overflow-hidden shrink-0"></div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-bold text-white">ตรวจพบรูปภาพจาก Ctrl+V!</h3>
+              <span class="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-medium">พร้อมใช้งาน</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">เลือกกิลด์ที่ต้องการเปลี่ยนรูปภาพนี้:</p>
+          </div>
+        </div>
+        <button id="btnCloseQuickPasteModal" class="text-slate-400 hover:text-white p-1 rounded-lg">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="my-3 shrink-0 relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+        <input type="text" id="qpSearchInput" placeholder="ค้นหากิลด์ที่ต้องการเปลี่ยนรูป..." class="w-full bg-[#080d1a] border border-slate-800 rounded-xl pl-8 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+      </div>
+
+      <div id="qpGuildsList" class="flex-1 overflow-y-auto space-y-2 pr-1 my-1 max-h-60"></div>
+
+      <div class="pt-3 border-t border-slate-800 flex items-center justify-end gap-2 shrink-0">
+        <button id="btnCancelQuickPaste" class="px-4 py-2 text-xs text-slate-400 hover:text-white rounded-xl">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Container -->
   <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
   <!-- App Logic -->
   <script src="app.js"><\/script>
 </body>
-</html>`;
+</html>
+`;
+export const STANDALONE_HTML = STANDALONE_INDEX_HTML;
 
 export const STANDALONE_APP_JS = `/**
  * KKop Guild Sub-Clan Raid Tracker & Attendance System
  * Realtime Database Sync & Wednesday 05:00 AM (UTC+7) Auto Reset Logic
+ * Supports changing pictures via Ctrl+V paste, drag & drop, and file upload
  */
 
 const DEFAULT_FIREBASE_CONFIG = {
@@ -424,7 +571,11 @@ let state = {
   dropFilter: "all",
   searchQuery: "",
   sortBy: "unbeaten_level_desc",
-  firebaseConfig: null
+  firebaseConfig: null,
+  hoveredGuildId: null,
+  activeCpGuildId: null,
+  tempCpImage: null,
+  activeQpImage: null
 };
 
 // ==========================================
@@ -482,6 +633,8 @@ function initApp() {
   setupEventListeners();
   renderIconPicker();
   startCountdownTimer();
+
+  // Check every 10s for Wednesday 05:00 AM reset
   setInterval(checkAndTriggerWeeklyReset, 10000);
 }
 
@@ -493,59 +646,105 @@ function loadSavedFirebaseConfig() {
 }
 
 function setupFirebaseOrFallback() {
-  const config = state.firebaseConfig || DEFAULT_FIREBASE_CONFIG;
-  const hasValidDbUrl = config.databaseURL && config.databaseURL.trim().length > 0 && !config.databaseURL.includes("your-project");
+  // First check if server API is available
+  fetch("/api/guilds")
+    .then(r => r.json())
+    .then(res => {
+      if (res && res.success && res.data) {
+        state.guilds = res.data.guilds || INITIAL_DEMO_GUILDS;
+        state.currentCycle = res.data.currentCycle || "";
+        state.lastResetTime = res.data.lastResetTime || null;
+        updateSyncStatusUI(true, "เรียลไทม์ (Server Sync)");
+        renderApp();
+        setupServerSse();
+        return;
+      }
+      setupFirebaseConnection();
+    })
+    .catch(() => {
+      setupFirebaseConnection();
+    });
+}
 
-  if (window.firebase && hasValidDbUrl) {
+function setupServerSse() {
+  try {
+    const es = new EventSource("/api/events");
+    es.onopen = () => {
+      updateSyncStatusUI(true, "เรียลไทม์ (Server Sync)");
+    };
+    es.onmessage = (e) => {
+      try {
+        const payload = JSON.parse(e.data);
+        if (payload && payload.data && Array.isArray(payload.data.guilds)) {
+          state.guilds = payload.data.guilds;
+          state.currentCycle = payload.data.currentCycle;
+          state.lastResetTime = payload.data.lastResetTime;
+          renderApp();
+        }
+      } catch (err) {}
+    };
+    es.onerror = () => {
+      // If server disconnects, fallback to firebase check
+      setupFirebaseConnection();
+    };
+  } catch (e) {
+    setupFirebaseConnection();
+  }
+}
+
+function setupFirebaseConnection() {
+  const config = state.firebaseConfig || DEFAULT_FIREBASE_CONFIG;
+  if (config && config.databaseURL && typeof firebase !== "undefined") {
     try {
       if (!firebase.apps.length) {
         firebaseApp = firebase.initializeApp(config);
       } else {
         firebaseApp = firebase.app();
       }
+
       firebaseDb = firebase.database();
-      dbRef = firebaseDb.ref("guild_raid_kkop");
+      dbRef = firebaseDb.ref("guild_raid_data");
 
-      updateSyncStatus(true, "เชื่อมต่อ Firebase (KKop)");
+      // Test connection
+      firebaseDb.ref(".info/connected").on("value", (snap) => {
+        isFirebaseConnected = !!snap.val();
+        updateSyncStatusUI(isFirebaseConnected, "เรียลไทม์ (Firebase)");
+      });
 
+      // Realtime listener
       dbRef.on("value", (snapshot) => {
         const val = snapshot.val();
-        if (val) {
+        if (val && Array.isArray(val.guilds)) {
+          state.guilds = val.guilds;
           state.currentCycle = val.current_cycle || "";
           state.lastResetTime = val.last_reset_time || null;
-          if (val.guilds) {
-            state.guilds = Array.isArray(val.guilds) 
-              ? val.guilds.filter(Boolean) 
-              : Object.keys(val.guilds).map(k => ({ id: k, ...val.guilds[k] }));
-          } else {
-            state.guilds = [];
-          }
-          checkAndTriggerWeeklyReset();
           renderApp();
+          checkAndTriggerWeeklyReset();
         } else {
-          saveDataToDatabase(INITIAL_DEMO_GUILDS);
+          initializeDefaultData();
         }
-      }, (error) => {
-        console.warn("RTDB error, using LocalStorage:", error);
+      }, (err) => {
+        console.warn("Firebase permission or offline:", err);
         fallbackToLocalStorage();
       });
+
       return;
-    } catch (err) {
-      fallbackToLocalStorage();
+    } catch (e) {
+      console.error("Firebase init failed:", e);
     }
-  } else {
-    fallbackToLocalStorage();
   }
+
+  fallbackToLocalStorage();
 }
 
 function fallbackToLocalStorage() {
   isFirebaseConnected = false;
-  updateSyncStatus(false, "โหมด LocalStorage (ออฟไลน์)");
+  updateSyncStatusUI(false);
 
-  const stored = localStorage.getItem("kkop_guild_data");
-  if (stored) {
+  const local = localStorage.getItem("kkop_guild_data");
+  if (local) {
     try {
-      const parsed = JSON.parse(stored);
+      const parsed = JSON.parse(local);
       state.guilds = parsed.guilds || INITIAL_DEMO_GUILDS;
       state.currentCycle = parsed.current_cycle || "";
       state.lastResetTime = parsed.last_reset_time || null;
@@ -554,32 +753,50 @@ function fallbackToLocalStorage() {
     }
   } else {
     state.guilds = INITIAL_DEMO_GUILDS;
+    const cycleInfo = getWednesdayCycleInfo();
+    state.currentCycle = cycleInfo.cycleKey;
   }
-  checkAndTriggerWeeklyReset();
+
   renderApp();
+  checkAndTriggerWeeklyReset();
 }
 
-function updateSyncStatus(connected, text) {
-  isFirebaseConnected = connected;
-  const badge = document.getElementById("syncStatusBadge");
-  const textEl = document.getElementById("syncStatusText");
-  if (!badge || !textEl) return;
-  textEl.textContent = text;
-  badge.className = connected
-    ? "inline-flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-    : "inline-flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30";
-}
-
-function saveDataToDatabase(newGuilds = null) {
-  const guildsToSave = newGuilds !== null ? newGuilds : state.guilds;
+function initializeDefaultData() {
   const cycleInfo = getWednesdayCycleInfo();
+  state.guilds = INITIAL_DEMO_GUILDS;
+  state.currentCycle = cycleInfo.cycleKey;
+  state.lastResetTime = Date.now();
+  saveDataToDatabase();
+}
 
+function updateSyncStatusUI(connected) {
+  const badge = document.getElementById("syncStatusBadge");
+  const text = document.getElementById("syncStatusText");
+  if (!badge || !text) return;
+
+  if (connected) {
+    badge.className = "inline-flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+    badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span><span>เรียลไทม์ (Firebase)</span>';
+  } else {
+    badge.className = "inline-flex items-center gap-1.5 text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700";
+    badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span><span>ออฟไลน์ (Local)</span>';
+  }
+}
+
+function saveDataToDatabase(updatedGuilds) {
+  const guildsToSave = updatedGuilds || state.guilds;
   const payload = {
-    current_cycle: state.currentCycle || cycleInfo.cycleKey,
+    current_cycle: state.currentCycle,
     last_reset_time: state.lastResetTime || Date.now(),
-    last_updated: Date.now(),
     guilds: guildsToSave
   };
+
+  // Attempt server sync
+  fetch("/api/guilds", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ guilds: guildsToSave })
+  }).catch(() => {});
 
   if (isFirebaseConnected && dbRef) {
     dbRef.set(payload).catch(() => {
@@ -621,12 +838,16 @@ function performReset(newCycleKey, isManual = false) {
 
   showToast(
     isManual
-      ? "รีเซ็ตสถานะเป็น \\"ยังไม่ได้ตี\\" ทุกกิลด์ด้วยตนเองเรียบร้อย!"
+      ? "รีเซ็ตสถานะเป็น \"ยังไม่ได้ตี\" ทุกกิลด์ด้วยตนเองเรียบร้อย!"
       : "ระบบรีเซ็ตสถานะเรดประจำสัปดาห์อัตโนมัติ (วันพุธ 05:00 น.) แล้ว!",
     "success"
   );
   renderApp();
 }
+
+// ==========================================
+// COUNTDOWN TIMER
+// ==========================================
 
 function startCountdownTimer() {
   function tick() {
@@ -645,19 +866,24 @@ function startCountdownTimer() {
 
     const cycleLabel = document.getElementById("currentCycleLabel");
     if (cycleLabel) {
-      cycleLabel.textContent = \`\${formatCycleDateString(cycleInfo.cycleStartThai)} (สิ้นสุดพุธหน้า 05:00 น.)\`;
+      cycleLabel.textContent = \`รอบปัจจุบัน: \${formatCycleDateString(cycleInfo.cycleStartThai)}\`;
     }
   }
+
   tick();
   setInterval(tick, 1000);
 }
 
+// ==========================================
+// RENDERING
+// ==========================================
+
 function renderApp() {
-  renderCounters();
+  updateCounts();
   renderGuildCards();
 }
 
-function renderCounters() {
+function updateCounts() {
   const total = state.guilds.length;
   const unbeaten = state.guilds.filter(g => g.status === "unbeaten").length;
   const beaten = state.guilds.filter(g => g.status === "beaten").length;
@@ -667,19 +893,45 @@ function renderCounters() {
   setText("countBeaten", beaten);
 }
 
-function getAvatarSvg(icon) {
-  switch (icon) {
-    case 'dragon':
-      return \`<div class="w-13 h-13 rounded-xl bg-[#121624] border border-red-500/30 flex items-center justify-center p-1.5 shadow-md relative overflow-hidden"><svg viewBox="0 0 24 24" fill="none" class="w-full h-full text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]" stroke="currentColor" stroke-width="1.8"><path d="M12 2C6.5 2 2 6.5 2 12c0 3.5 1.8 6.6 4.5 8.4-.2-1.8.4-3.7 1.8-5.1 1.7-1.7 4.2-2.1 6.3-1.1-.9-1.2-1.3-2.7-1.1-4.2.4-2.8 2.8-4.9 5.6-4.9 1.4 0 2.6.5 3.6 1.4-.4-3.7-3.5-6.5-7.7-6.5z" fill="currentColor" fill-opacity="0.85"/><circle cx="19" cy="10" r="1.5" fill="#fca5a5"/></svg></div>\`;
-    case 'lion':
-      return \`<div class="w-13 h-13 rounded-xl bg-[#121624] border border-cyan-500/30 flex items-center justify-center p-1.5 shadow-md relative overflow-hidden"><svg viewBox="0 0 24 24" fill="none" class="w-full h-full text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.7)]" stroke="currentColor" stroke-width="1.8"><path d="M12 3a9 9 0 0 0-9 9c0 3.8 2.4 7 5.8 8.3-.3-1.4.1-3 1.2-4.1 1.2-1.2 3-1.6 4.6-.9-.6-.9-.8-2-.6-3.1.3-2 1.9-3.5 3.9-3.5 1 0 1.8.3 2.5 1-.2-3.8-3.4-6.7-7.4-6.7z" fill="currentColor" fill-opacity="0.85"/><circle cx="16" cy="9" r="1.5" fill="#a5f3fc"/><path d="M8 14c1 1 2.5 1.5 4 1" stroke="#a5f3fc" stroke-width="2" stroke-linecap="round"/></svg></div>\`;
-    case 'crows':
-      return \`<div class="w-13 h-13 rounded-xl bg-[#121624] border border-amber-500/30 flex items-center justify-center p-1.5 shadow-md relative overflow-hidden"><svg viewBox="0 0 24 24" fill="none" class="w-full h-full text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.7)]" stroke="currentColor" stroke-width="1.8"><path d="M12 2a5 5 0 0 0-5 5v3c0 2 1.5 3.5 3.5 4H8l-3 4h14l-3-4h-2.5c2-.5 3.5-2 3.5-4V7a5 5 0 0 0-5-5z" fill="currentColor" fill-opacity="0.85"/><circle cx="10" cy="7" r="1" fill="#fef3c7"/><circle cx="14" cy="7" r="1" fill="#fef3c7"/><path d="M9 18l3 4 3-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>\`;
-    case 'devil':
-      return \`<div class="w-13 h-13 rounded-xl bg-[#121624] border border-rose-500/30 flex items-center justify-center p-1.5 shadow-md relative overflow-hidden"><svg viewBox="0 0 24 24" fill="none" class="w-full h-full text-rose-500 drop-shadow-[0_0_8px_rgba(244,63,94,0.7)]" stroke="currentColor" stroke-width="1.8"><path d="M4 6c0 5 3 13 8 16 5-3 8-11 8-16-3 1-6 0-8-2-2 2-5 3-8 2z" fill="currentColor" fill-opacity="0.85"/><path d="M9 11l2 2-2 2M15 11l-2 2 2 2" stroke="#ffe4e6" stroke-width="2" stroke-linecap="round"/><path d="M8 4l2 3M16 4l-2 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>\`;
-    default:
-      return \`<div class="w-13 h-13 rounded-xl bg-[#121624] border border-indigo-500/30 flex items-center justify-center p-1.5 shadow-md"><i class="fa-solid fa-shield text-indigo-400 text-xl"></i></div>\`;
+function getAvatarSvg(icon, customImage, guildId = null) {
+  let content = "";
+  if (customImage) {
+    content = \`<img src="\${customImage}" alt="Emblem" class="w-full h-full object-cover rounded-[10px]">\`;
+  } else {
+    switch (icon) {
+      case 'dragon':
+        content = \`<div class="absolute inset-0 bg-gradient-to-tr from-red-600/20 via-transparent to-transparent pointer-events-none"></div><svg viewBox="0 0 24 24" fill="none" class="w-full h-full text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]" stroke="currentColor" stroke-width="1.8"><path d="M12 2C6.5 2 2 6.5 2 12c0 3.5 1.8 6.6 4.5 8.4-.2-1.8.4-3.7 1.8-5.1 1.7-1.7 4.2-2.1 6.3-1.1-.9-1.2-1.3-2.7-1.1-4.2.4-2.8 2.8-4.9 5.6-4.9 1.4 0 2.6.5 3.6 1.4-.4-3.7-3.5-6.5-7.7-6.5z" fill="currentColor" fill-opacity="0.85"/><circle cx="19" cy="10" r="1.5" fill="#fca5a5"/></svg>\`;
+        break;
+      case 'lion':
+        content = \`<div class="absolute inset-0 bg-gradient-to-tr from-cyan-600/20 via-transparent to-transparent pointer-events-none"></div><svg viewBox="0 0 24 24" fill="none" class="w-full h-full text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.7)]" stroke="currentColor" stroke-width="1.8"><path d="M12 3a9 9 0 0 0-9 9c0 3.8 2.4 7 5.8 8.3-.3-1.4.1-3 1.2-4.1 1.2-1.2 3-1.6 4.6-.9-.6-.9-.8-2-.6-3.1.3-2 1.9-3.5 3.9-3.5 1 0 1.8.3 2.5 1-.2-3.8-3.4-6.7-7.4-6.7z" fill="currentColor" fill-opacity="0.85"/><circle cx="16" cy="9" r="1.5" fill="#a5f3fc"/><path d="M8 14c1 1 2.5 1.5 4 1" stroke="#a5f3fc" stroke-width="2" stroke-linecap="round"/></svg>\`;
+        break;
+      case 'crows':
+        content = \`<div class="absolute inset-0 bg-gradient-to-tr from-amber-600/20 via-transparent to-transparent pointer-events-none"></div><svg viewBox="0 0 24 24" fill="none" class="w-full h-full text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.7)]" stroke="currentColor" stroke-width="1.8"><path d="M12 2a5 5 0 0 0-5 5v3c0 2 1.5 3.5 3.5 4H8l-3 4h14l-3-4h-2.5c2-.5 3.5-2 3.5-4V7a5 5 0 0 0-5-5z" fill="currentColor" fill-opacity="0.85"/><circle cx="10" cy="7" r="1" fill="#fef3c7"/><circle cx="14" cy="7" r="1" fill="#fef3c7"/><path d="M9 18l3 4 3-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>\`;
+        break;
+      case 'devil':
+        content = \`<div class="absolute inset-0 bg-gradient-to-tr from-rose-600/20 via-transparent to-transparent pointer-events-none"></div><svg viewBox="0 0 24 24" fill="none" class="w-full h-full text-rose-500 drop-shadow-[0_0_8px_rgba(244,63,94,0.7)]" stroke="currentColor" stroke-width="1.8"><path d="M4 6c0 5 3 13 8 16 5-3 8-11 8-16-3 1-6 0-8-2-2 2-5 3-8 2z" fill="currentColor" fill-opacity="0.85"/><path d="M9 11l2 2-2 2M15 11l-2 2 2 2" stroke="#ffe4e6" stroke-width="2" stroke-linecap="round"/><path d="M8 4l2 3M16 4l-2 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>\`;
+        break;
+      default:
+        content = \`<i class="fa-solid fa-shield text-indigo-400 text-xl"></i>\`;
+    }
   }
+
+  if (guildId) {
+    return \`
+      <div onclick="openChangePictureModal('\${guildId}')" class="relative cursor-pointer group/avatar shrink-0" title="คลิกเพื่อเปลี่ยนรูป หรือชี้แล้วกด Ctrl+V เพื่อวางรูปภาพ">
+        <div class="w-13 h-13 rounded-xl bg-[#121624] border border-indigo-500/40 p-0.5 shadow-md relative overflow-hidden flex items-center justify-center shrink-0 transition-transform group-hover/avatar:scale-105">
+          \${content}
+        </div>
+        <div class="absolute inset-0 bg-slate-950/70 backdrop-blur-[1px] rounded-xl opacity-0 group-hover/avatar:opacity-100 transition-opacity flex flex-col items-center justify-center text-white">
+          <i class="fa-solid fa-camera text-indigo-300 text-sm"></i>
+          <span class="text-[9px] font-semibold text-indigo-200 mt-0.5 leading-none">Ctrl+V</span>
+        </div>
+        \${customImage ? '<div class="absolute -top-1 -right-1 w-3 h-3 bg-indigo-500 rounded-full border-2 border-[#0b101d]"></div>' : ''}
+      </div>
+    \`;
+  }
+
+  return \`<div class="w-13 h-13 rounded-xl bg-[#121624] border border-indigo-500/40 p-0.5 shadow-md relative overflow-hidden flex items-center justify-center shrink-0">\${content}</div>\`;
 }
 
 function renderGuildCards() {
@@ -688,6 +940,7 @@ function renderGuildCards() {
   if (!container) return;
 
   let list = state.guilds.filter(g => {
+    // Search
     if (state.searchQuery.trim()) {
       const q = state.searchQuery.toLowerCase().trim();
       const matchName = g.name.toLowerCase().includes(q);
@@ -696,12 +949,17 @@ function renderGuildCards() {
       if (!matchName && !matchLevel && !matchDrop) return false;
     }
 
+    // Status filter
     if (state.statusFilter === "unbeaten" && g.status !== "unbeaten") return false;
     if (state.statusFilter === "beaten" && g.status !== "beaten") return false;
+
+    // Drop filter
     if (state.dropFilter !== "all" && g.dropType !== state.dropFilter) return false;
+
     return true;
   });
 
+  // Sorting
   list.sort((a, b) => {
     if (state.sortBy === "unbeaten_level_desc") {
       if (a.status !== b.status) return a.status === "unbeaten" ? -1 : 1;
@@ -731,6 +989,7 @@ function renderGuildCards() {
   container.innerHTML = list.map(g => {
     const isBeaten = g.status === "beaten";
 
+    // Drop badge HTML
     let dropHtml = "";
     if (g.dropType === "inventory") {
       dropHtml = \`<span class="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 font-medium"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span><span>1.ของเข้าตัว</span></span>\`;
@@ -753,11 +1012,16 @@ function renderGuildCards() {
       : \`<i class="fa-regular fa-circle text-slate-400"></i><span>ยังไม่ได้ตี</span>\`;
 
     return \`
-      <div class="rounded-2xl p-4 sm:p-5 transition-all duration-200 relative flex flex-col justify-between \${cardClass}">
+      <div
+        onmouseenter="setHoveredGuild('\${g.id}')"
+        onmouseleave="clearHoveredGuild('\${g.id}')"
+        ondragover="event.preventDefault()"
+        ondrop="handleCardDrop(event, '\${g.id}')"
+        class="rounded-2xl p-4 sm:p-5 transition-all duration-200 relative flex flex-col justify-between group \${cardClass}">
         <div>
           <div class="flex items-start justify-between gap-3">
             <div class="flex items-center gap-3">
-              \${getAvatarSvg(g.avatarIcon)}
+              \${getAvatarSvg(g.avatarIcon, g.customImage, g.id)}
               <div>
                 <div class="flex items-center gap-2 flex-wrap">
                   <h3 class="text-base sm:text-lg font-bold text-white tracking-wide uppercase font-chakra">
@@ -765,18 +1029,29 @@ function renderGuildCards() {
                   </h3>
                   \${isBeaten ? '<span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-500/30">ตีแล้ว</span>' : ''}
                 </div>
-                <div class="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5">
-                  <i class="fa-solid fa-user-group text-slate-500 text-[10px]"></i>
-                  <span>\${g.level ? \`Lv.\${g.level}\` : 'ไม่ระบุเลเวล'}</span>
+                <div class="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                  <div class="flex items-center gap-1">
+                    <i class="fa-solid fa-user-group text-slate-500 text-[10px]"></i>
+                    <span>\${g.level ? \`Lv.\${g.level}\` : 'ไม่ระบุเลเวล'}</span>
+                  </div>
+                  <button type="button" onclick="openChangePictureModal('\${g.id}')" class="text-[11px] text-indigo-400 hover:text-indigo-300 underline opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 cursor-pointer">
+                    <i class="fa-solid fa-camera text-[10px]"></i>
+                    <span>เปลี่ยนรูป (Ctrl+V)</span>
+                  </button>
                 </div>
               </div>
             </div>
-            <button onclick="openEditGuild('\${g.id}')" class="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer" title="แก้ไข">
-              <i class="fa-solid fa-pen text-sm"></i>
-            </button>
+            <div class="flex items-center gap-1">
+              <button onclick="openChangePictureModal('\${g.id}')" class="p-1.5 text-slate-400 hover:text-indigo-300 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer" title="เปลี่ยนรูปภาพ (Ctrl+V)">
+                <i class="fa-solid fa-camera text-sm"></i>
+              </button>
+              <button onclick="openEditGuild('\${g.id}')" class="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors cursor-pointer" title="แก้ไข">
+                <i class="fa-solid fa-pen text-sm"></i>
+              </button>
+            </div>
           </div>
 
-          <div class="mt-3.5 flex items-center gap-2">
+          <div class="mt-3.5 flex items-center gap-2 flex-wrap">
             \${dropHtml}
           </div>
         </div>
@@ -794,6 +1069,240 @@ function renderGuildCards() {
   }).join("");
 }
 
+// Hover tracking
+window.setHoveredGuild = function(id) {
+  state.hoveredGuildId = id;
+};
+window.clearHoveredGuild = function(id) {
+  if (state.hoveredGuildId === id) state.hoveredGuildId = null;
+};
+
+// ==========================================
+// IMAGE PROCESSING & CTRL+V PASTE
+// ==========================================
+
+function compressImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxSize = 256;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxSize) {
+            height = Math.round((height * maxSize) / width);
+            width = maxSize;
+          }
+        } else {
+          if (height > maxSize) {
+            width = Math.round((width * maxSize) / height);
+            height = maxSize;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", 0.85));
+        } else {
+          resolve(e.target.result);
+        }
+      };
+      img.onerror = () => resolve(e.target.result);
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Global Paste Listener
+window.addEventListener("paste", async (e) => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+
+  let imageFile = null;
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type.indexOf("image") !== -1) {
+      imageFile = items[i].getAsFile();
+      break;
+    }
+  }
+
+  if (imageFile) {
+    e.preventDefault();
+    try {
+      const base64 = await compressImageFile(imageFile);
+
+      // Case 1: Change Picture Modal is currently open
+      const cpModal = document.getElementById("changePictureModal");
+      if (cpModal && !cpModal.classList.contains("hidden") && state.activeCpGuildId) {
+        setChangePicturePreview(base64);
+        showToast("ตรวจพบรูปภาพจาก Ctrl+V พร้อมบันทึกแล้ว!", "success");
+        return;
+      }
+
+      // Case 2: Add/Edit Guild Modal is currently open
+      const gModal = document.getElementById("guildModal");
+      if (gModal && !gModal.classList.contains("hidden")) {
+        setCustomImagePreview(base64);
+        showToast("วางรูปภาพลงในฟอร์มสำเร็จ!", "success");
+        return;
+      }
+
+      // Case 3: A guild card is hovered by mouse
+      if (state.hoveredGuildId) {
+        const target = state.guilds.find(g => g.id === state.hoveredGuildId);
+        if (target) {
+          const updated = state.guilds.map(g =>
+            g.id === state.hoveredGuildId ? { ...g, customImage: base64, updatedAt: Date.now() } : g
+          );
+          saveDataToDatabase(updated);
+          showToast(\`เปลี่ยนรูปภาพของกิลด์ "\${target.name}" สำเร็จแล้ว! 🎉 (จาก Ctrl+V)\`, "success");
+          return;
+        }
+      }
+
+      // Case 4: No specific guild hovered -> open QuickPasteModal to select guild
+      openQuickPasteModal(base64);
+    } catch (err) {
+      console.error("Paste image error:", err);
+      showToast("เกิดข้อผิดพลาดในการประมวลผลรูปภาพที่วาง", "warning");
+    }
+  }
+});
+
+// Drag & Drop on Guild Cards
+window.handleCardDrop = async function(e, guildId) {
+  e.preventDefault();
+  const file = e.dataTransfer?.files?.[0];
+  if (file && file.type.startsWith("image/")) {
+    try {
+      const base64 = await compressImageFile(file);
+      const target = state.guilds.find(g => g.id === guildId);
+      const updated = state.guilds.map(g =>
+        g.id === guildId ? { ...g, customImage: base64, updatedAt: Date.now() } : g
+      );
+      saveDataToDatabase(updated);
+      showToast(\`เปลี่ยนรูปภาพของกิลด์ "\${target?.name || ''}" สำเร็จแล้ว! 📸\`, "success");
+    } catch (err) {
+      console.error("Card drop error:", err);
+    }
+  }
+};
+
+// ==========================================
+// CHANGE PICTURE MODAL
+// ==========================================
+
+window.openChangePictureModal = function(guildId) {
+  const g = state.guilds.find(x => x.id === guildId);
+  if (!g) return;
+
+  state.activeCpGuildId = guildId;
+  state.tempCpImage = g.customImage || null;
+
+  document.getElementById("cpGuildName").textContent = \`เปลี่ยนรูปกิลด์: \${g.name}\`;
+  setChangePicturePreview(state.tempCpImage);
+
+  document.getElementById("changePictureModal").classList.remove("hidden");
+};
+
+function closeChangePictureModal() {
+  document.getElementById("changePictureModal").classList.add("hidden");
+  state.activeCpGuildId = null;
+  state.tempCpImage = null;
+}
+
+function setChangePicturePreview(base64) {
+  state.tempCpImage = base64;
+  const container = document.getElementById("cpCurrentPreview");
+  const removeBtn = document.getElementById("cpRemoveBtnContainer");
+
+  const target = state.guilds.find(g => g.id === state.activeCpGuildId);
+  const icon = target?.avatarIcon || "dragon";
+
+  if (base64) {
+    container.innerHTML = \`<img src="\${base64}" alt="Preview" class="w-18 h-18 rounded-xl object-cover border border-indigo-500/50 shadow-md">\`;
+    if (removeBtn) removeBtn.classList.remove("hidden");
+  } else {
+    container.innerHTML = getAvatarSvg(icon);
+    if (removeBtn) removeBtn.classList.add("hidden");
+  }
+}
+
+// ==========================================
+// QUICK PASTE IMAGE MODAL
+// ==========================================
+
+function openQuickPasteModal(base64) {
+  state.activeQpImage = base64;
+  const thumb = document.getElementById("qpImageThumbnail");
+  if (thumb) {
+    thumb.innerHTML = \`<img src="\${base64}" alt="Pasted" class="w-full h-full object-cover rounded-[10px]">\`;
+  }
+
+  renderQuickPasteGuildList();
+  document.getElementById("quickPasteImageModal").classList.remove("hidden");
+}
+
+function closeQuickPasteModal() {
+  document.getElementById("quickPasteImageModal").classList.add("hidden");
+  state.activeQpImage = null;
+}
+
+function renderQuickPasteGuildList(search = "") {
+  const container = document.getElementById("qpGuildsList");
+  if (!container) return;
+
+  const filtered = state.guilds.filter(g =>
+    g.name.toLowerCase().includes(search.toLowerCase()) ||
+    (g.level && String(g.level).includes(search))
+  );
+
+  if (filtered.length === 0) {
+    container.innerHTML = \`<div class="text-center py-6 text-xs text-slate-500">ไม่พบกิลด์ที่ตรงกับคำค้นหา</div>\`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(g => \`
+    <div onclick="applyQuickPasteToGuild('\${g.id}')" class="flex items-center justify-between p-2.5 rounded-xl bg-[#090e1c] hover:bg-[#131b2f] border border-slate-800/80 hover:border-indigo-500/50 transition-all cursor-pointer group">
+      <div class="flex items-center gap-3">
+        \${getAvatarSvg(g.avatarIcon, g.customImage)}
+        <div>
+          <div class="text-xs font-bold text-white group-hover:text-indigo-300 transition-colors">\${escapeHtml(g.name)}</div>
+          <div class="text-[11px] text-slate-400">\${g.level ? \`Lv.\${g.level}\` : 'ไม่ระบุเลเวล'} • \${g.status === 'beaten' ? 'ตีแล้ว' : 'ยังไม่ได้ตี'}</div>
+        </div>
+      </div>
+      <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-950/70 text-indigo-300 border border-indigo-500/30 group-hover:bg-indigo-600 group-hover:text-white transition-all flex items-center gap-1.5">
+        <i class="fa-solid fa-check text-xs"></i>
+        <span>เปลี่ยนเป็นรูปนี้</span>
+      </button>
+    </div>
+  \`).join("");
+}
+
+window.applyQuickPasteToGuild = function(guildId) {
+  if (!state.activeQpImage) return;
+  const target = state.guilds.find(g => g.id === guildId);
+  const updated = state.guilds.map(g =>
+    g.id === guildId ? { ...g, customImage: state.activeQpImage, updatedAt: Date.now() } : g
+  );
+  saveDataToDatabase(updated);
+  closeQuickPasteModal();
+  showToast(\`เปลี่ยนรูปภาพของกิลด์ "\${target?.name || ''}" เรียบร้อย! 🎉\`, "success");
+};
+
+// ==========================================
+// ACTIONS & HANDLERS
+// ==========================================
+
 window.toggleGuildStatus = function(id) {
   const updated = state.guilds.map(g => {
     if (g.id === id) {
@@ -809,6 +1318,37 @@ window.toggleGuildStatus = function(id) {
   });
   saveDataToDatabase(updated);
 };
+
+function setCustomImagePreview(base64) {
+  const hiddenInput = document.getElementById("formCustomImage");
+  const previewBox = document.getElementById("customImagePreviewBox");
+  const label = document.getElementById("customImageLabel");
+  const badge = document.getElementById("customImageBadge");
+  const subtext = document.getElementById("customImageSubtext");
+  const removeBtn = document.getElementById("btnRemoveCustomImage");
+
+  if (hiddenInput) hiddenInput.value = base64 || "";
+
+  if (base64) {
+    if (previewBox) {
+      previewBox.innerHTML = \`<img src="\${base64}" alt="Preview" class="w-full h-full object-cover rounded-[10px]">\`;
+      previewBox.className = "w-11 h-11 rounded-xl bg-slate-900 border border-indigo-500/50 p-0.5 shadow-md relative overflow-hidden shrink-0";
+    }
+    if (label) label.textContent = "ใช้รูปภาพที่วางเอง";
+    if (badge) badge.classList.remove("hidden");
+    if (subtext) subtext.textContent = "กด Ctrl+V อีกครั้งเพื่อเปลี่ยนรูปใหม่";
+    if (removeBtn) removeBtn.classList.remove("hidden");
+  } else {
+    if (previewBox) {
+      previewBox.innerHTML = '<i class="fa-regular fa-image text-indigo-400 text-lg"></i>';
+      previewBox.className = "w-11 h-11 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 shrink-0";
+    }
+    if (label) label.textContent = "เปลี่ยนรูป: กด Ctrl+V ได้ทันที";
+    if (badge) badge.classList.add("hidden");
+    if (subtext) subtext.textContent = "คัดลอกรูปภาพแล้วกด Ctrl+V หรือคลิกเลือกไฟล์";
+    if (removeBtn) removeBtn.classList.add("hidden");
+  }
+}
 
 window.openEditGuild = function(id) {
   const g = state.guilds.find(x => x.id === id);
@@ -839,6 +1379,8 @@ window.openEditGuild = function(id) {
 
   document.getElementById("formStatus").value = g.status;
   setSelectedIcon(g.avatarIcon || "dragon");
+  setCustomImagePreview(g.customImage || "");
+
   document.getElementById("guildModal").classList.remove("hidden");
 };
 
@@ -876,82 +1418,69 @@ window.setSelectedIcon = function(icon) {
   });
 };
 
-function handleQuickPaste() {
-  const input = prompt("พิมพ์หรือวางชื่อกิลด์ที่ต้องการเพิ่ม (ใส่หลายชื่อคั่นด้วยเครื่องหมายจุลภาค , หรือบรรทัดใหม่):");
-  if (!input || !input.trim()) return;
-
-  const names = input.split(/[,\\n]/).map(s => s.trim().toUpperCase()).filter(Boolean);
-  if (names.length === 0) return;
-
-  const icons = ['dragon', 'lion', 'crows', 'devil'];
-  const newItems = names.map((name, i) => ({
-    id: "g_" + Date.now() + "_" + i + "_" + Math.random().toString(36).substring(2, 5),
-    name,
-    level: 12,
-    status: "unbeaten",
-    dropType: "inventory",
-    avatarIcon: icons[i % icons.length],
-    updatedAt: Date.now()
-  }));
-
-  const updated = [...state.guilds, ...newItems];
-  saveDataToDatabase(updated);
-  showToast(\`เพิ่มกิลด์สำเร็จ \${newItems.length} รายการ\`, "success");
-}
+// ==========================================
+// EVENT LISTENERS SETUP
+// ==========================================
 
 function setupEventListeners() {
+  // Search
   document.getElementById("searchInput")?.addEventListener("input", (e) => {
-    state.searchQuery = e.target.value.trim();
+    state.searchQuery = e.target.value;
     renderGuildCards();
   });
 
+  // Status Tabs
   document.querySelectorAll(".status-tab").forEach(tab => {
     tab.addEventListener("click", () => {
       document.querySelectorAll(".status-tab").forEach(t => {
         t.className = "status-tab px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer";
       });
       tab.className = "status-tab active px-3 py-1.5 rounded-lg font-semibold bg-indigo-600 text-white shadow-sm transition-colors cursor-pointer";
+
       state.statusFilter = tab.getAttribute("data-status");
       renderGuildCards();
     });
   });
 
+  // Drop Tabs
   document.querySelectorAll(".drop-tab").forEach(tab => {
     tab.addEventListener("click", () => {
       document.querySelectorAll(".drop-tab").forEach(t => {
         t.className = "drop-tab px-3 py-1.5 rounded-xl border bg-[#0c1220] text-slate-400 border-slate-800/80 hover:text-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer";
       });
       tab.className = "drop-tab active px-3 py-1.5 rounded-xl border bg-slate-800 text-white border-slate-600 font-semibold transition-colors flex items-center gap-1.5 cursor-pointer";
+
       state.dropFilter = tab.getAttribute("data-drop");
       renderGuildCards();
     });
   });
 
+  // Sort Select
   document.getElementById("sortSelect")?.addEventListener("change", (e) => {
     state.sortBy = e.target.value;
     renderGuildCards();
   });
 
-  document.getElementById("btnQuickPaste")?.addEventListener("click", handleQuickPaste);
-
-  window.addEventListener("keydown", (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "v") {
-      const tag = document.activeElement?.tagName.toLowerCase();
-      if (tag !== "input" && tag !== "textarea") {
-        e.preventDefault();
-        handleQuickPaste();
-      }
+  // Change Picture Button in top bar
+  document.getElementById("btnQuickChangePicture")?.addEventListener("click", () => {
+    if (state.guilds.length > 0) {
+      const targetId = state.hoveredGuildId || state.guilds[0].id;
+      openChangePictureModal(targetId);
+    } else {
+      openAddGuildHandler();
     }
   });
 
+  // Manual Reset
   document.getElementById("btnManualReset")?.addEventListener("click", () => {
-    if (confirm("ต้องการรีเซ็ตสถานะเป็น \\"ยังไม่ได้ตี\\" ทุกกิลด์ทันทีหรือไม่?")) {
+    if (confirm("ต้องการรีเซ็ตสถานะเป็น \"ยังไม่ได้ตี\" ทุกกิลด์ทันทีหรือไม่? (แนะนำเมื่อขึ้นรอบวันพุธ 05:00 น.)")) {
       const cycleInfo = getWednesdayCycleInfo();
       performReset(cycleInfo.cycleKey, true);
     }
   });
 
-  const openAddHandler = () => {
+  // Open Add Guild Modal
+  const openAddGuildHandler = () => {
     document.getElementById("modalTitle").innerHTML = '<i class="fa-solid fa-plus text-indigo-400"></i> เพิ่มกิลด์ใหม่';
     document.getElementById("guildForm").reset();
     document.getElementById("formGuildId").value = "";
@@ -959,16 +1488,93 @@ function setupEventListeners() {
     document.getElementById("formNoLevel").checked = false;
     document.getElementById("formDropNote").classList.add("hidden");
     setSelectedIcon("dragon");
+    setCustomImagePreview("");
     document.getElementById("guildModal").classList.remove("hidden");
   };
 
-  document.getElementById("btnOpenAddGuild")?.addEventListener("click", openAddHandler);
-  document.getElementById("btnEmptyAdd")?.addEventListener("click", openAddHandler);
+  document.getElementById("btnOpenAddGuild")?.addEventListener("click", openAddGuildHandler);
+  document.getElementById("btnEmptyAdd")?.addEventListener("click", openAddGuildHandler);
 
+  // Close Guild Modal
   const closeGuildModal = () => document.getElementById("guildModal")?.classList.add("hidden");
   document.getElementById("btnCloseGuildModal")?.addEventListener("click", closeGuildModal);
   document.getElementById("btnCancelGuildModal")?.addEventListener("click", closeGuildModal);
 
+  // File upload inside Add/Edit modal
+  document.getElementById("btnTriggerUpload")?.addEventListener("click", () => {
+    document.getElementById("formFileInput")?.click();
+  });
+  document.getElementById("formFileInput")?.addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const base64 = await compressImageFile(file);
+      setCustomImagePreview(base64);
+      showToast("อัปโหลดรูปภาพสำเร็จ!", "success");
+    }
+  });
+  document.getElementById("btnRemoveCustomImage")?.addEventListener("click", () => {
+    setCustomImagePreview("");
+  });
+
+  // Change Picture Modal Events
+  document.getElementById("btnCloseChangePictureModal")?.addEventListener("click", closeChangePictureModal);
+  document.getElementById("btnCancelChangePicture")?.addEventListener("click", closeChangePictureModal);
+
+  document.getElementById("btnCpRemoveImage")?.addEventListener("click", () => {
+    setChangePicturePreview(null);
+  });
+
+  const cpDropZone = document.getElementById("cpDropZone");
+  const cpFileInput = document.getElementById("cpFileInput");
+
+  cpDropZone?.addEventListener("click", () => cpFileInput?.click());
+
+  cpFileInput?.addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const base64 = await compressImageFile(file);
+      setChangePicturePreview(base64);
+      showToast("เลือกรูปภาพสำเร็จ!", "success");
+    }
+  });
+
+  cpDropZone?.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    cpDropZone.classList.add("border-indigo-400", "bg-indigo-950/30");
+  });
+  cpDropZone?.addEventListener("dragleave", () => {
+    cpDropZone.classList.remove("border-indigo-400", "bg-indigo-950/30");
+  });
+  cpDropZone?.addEventListener("drop", async (e) => {
+    e.preventDefault();
+    cpDropZone.classList.remove("border-indigo-400", "bg-indigo-950/30");
+    const file = e.dataTransfer?.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      const base64 = await compressImageFile(file);
+      setChangePicturePreview(base64);
+      showToast("วางรูปภาพสำเร็จ!", "success");
+    }
+  });
+
+  document.getElementById("btnSaveChangePicture")?.addEventListener("click", () => {
+    if (!state.activeCpGuildId) return;
+    const target = state.guilds.find(g => g.id === state.activeCpGuildId);
+    const updated = state.guilds.map(g =>
+      g.id === state.activeCpGuildId ? { ...g, customImage: state.tempCpImage || undefined, updatedAt: Date.now() } : g
+    );
+    saveDataToDatabase(updated);
+    closeChangePictureModal();
+    showToast(\`อัปเดตรูปภาพของ "\${target?.name || ''}" สำเร็จแล้ว! 🎉\`, "success");
+  });
+
+  // Quick Paste Modal Events
+  document.getElementById("btnCloseQuickPasteModal")?.addEventListener("click", closeQuickPasteModal);
+  document.getElementById("btnCancelQuickPaste")?.addEventListener("click", closeQuickPasteModal);
+  document.getElementById("qpSearchInput")?.addEventListener("input", (e) => {
+    renderQuickPasteGuildList(e.target.value);
+  });
+
+  // Drop type select toggle
   document.getElementById("formDropType")?.addEventListener("change", (e) => {
     const noteEl = document.getElementById("formDropNote");
     if (e.target.value === "other") {
@@ -978,6 +1584,7 @@ function setupEventListeners() {
     }
   });
 
+  // Submit Guild Form
   document.getElementById("guildForm")?.addEventListener("submit", (e) => {
     e.preventDefault();
     const id = document.getElementById("formGuildId").value;
@@ -988,30 +1595,37 @@ function setupEventListeners() {
     const dropNote = document.getElementById("formDropNote").value.trim();
     const status = document.getElementById("formStatus").value;
     const avatarIcon = document.getElementById("formGuildIcon").value || "dragon";
+    const customImage = document.getElementById("formCustomImage").value || undefined;
 
     if (!name) return;
 
     let updated = [];
     if (id) {
       updated = state.guilds.map(g => g.id === id ? {
-        ...g, name, level, dropType, dropNote: dropType === 'other' ? dropNote || 'คนอื่นตี' : undefined, status, avatarIcon, updatedAt: Date.now()
+        ...g, name, level, dropType, dropNote: dropType === 'other' ? dropNote || 'คนอื่นตี' : undefined, status, avatarIcon, customImage, updatedAt: Date.now()
       } : g);
       showToast(\`อัปเดตข้อมูล \${name} สำเร็จ\`, "success");
     } else {
       const newGuild = {
         id: "g_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6),
-        name, level, dropType, dropNote: dropType === 'other' ? dropNote || 'คนอื่นตี' : undefined, status, avatarIcon,
-        beatenAt: status === "beaten" ? Date.now() : null,
+        name,
+        level,
+        status,
+        dropType,
+        dropNote: dropType === 'other' ? dropNote || 'คนอื่นตี' : undefined,
+        avatarIcon,
+        customImage,
         updatedAt: Date.now()
       };
       updated = [...state.guilds, newGuild];
-      showToast(\`เพิ่มกิลด์ "\${name}" เรียบร้อย\`, "success");
+      showToast(\`เพิ่มกิลด์ "\${name}" สำเร็จ\`, "success");
     }
 
     saveDataToDatabase(updated);
     closeGuildModal();
   });
 
+  // Export LINE / Discord Modal
   document.getElementById("btnExportLine")?.addEventListener("click", () => {
     generateExportSummary();
     document.getElementById("exportModal")?.classList.remove("hidden");
@@ -1019,17 +1633,13 @@ function setupEventListeners() {
   document.getElementById("btnCloseExportModal")?.addEventListener("click", () => {
     document.getElementById("exportModal")?.classList.add("hidden");
   });
-
   document.getElementById("btnCopyExportText")?.addEventListener("click", () => {
-    const textEl = document.getElementById("exportTextArea");
-    if (textEl) {
-      textEl.select();
-      navigator.clipboard.writeText(textEl.value).then(() => {
-        showToast("คัดลอกข้อความสรุปเรียบร้อยแล้ว!", "success");
-      });
-    }
+    const text = document.getElementById("exportTextArea").value;
+    navigator.clipboard.writeText(text);
+    showToast("คัดลอกข้อความสรุปแล้ว นำไปวางใน LINE/Discord ได้เลย!", "success");
   });
 
+  // Firebase Config Modal
   document.getElementById("btnOpenFirebaseModal")?.addEventListener("click", () => {
     const config = state.firebaseConfig || DEFAULT_FIREBASE_CONFIG;
     document.getElementById("fbConfigDbUrl").value = config.databaseURL || "";
@@ -1084,31 +1694,32 @@ function generateExportSummary() {
   const unbeaten = state.guilds.filter(g => g.status === "unbeaten");
   const beaten = state.guilds.filter(g => g.status === "beaten");
 
-  let text = \`🛡️ [สรุปสถานะเรดแคลน กิลด์รอง KKop]\\n\`;
-  text += \`📅 \${dateStr}\\n\`;
-  text += \`------------------------------------\\n\`;
-  text += \`⚔️ ตีแล้วเรียบร้อย: \${beaten.length}/\${total} กิลด์\\n\`;
-  text += \`⏳ ยังไม่ได้ตี: \${unbeaten.length} กิลด์\\n\`;
-  text += \`------------------------------------\\n\\n\`;
+  let text = \`🛡️ [สรุปสถานะเรดแคลน กิลด์รอง KKop]\n\`;
+  text += \`📅 \${dateStr}\n\`;
+  text += \`------------------------------------\n\`;
+  text += \`⚔️ ตีแล้วเรียบร้อย: \${beaten.length}/\${total} กิลด์\n\`;
+  text += \`⏳ ยังไม่ได้ตี: \${unbeaten.length} กิลด์\n\`;
+  text += \`------------------------------------\n\n\`;
 
   if (unbeaten.length > 0) {
-    text += \`⚠️ กิลด์ที่ยังไม่ได้ตี (\${unbeaten.length}):\\n\`;
+    text += \`⚠️ กิลด์ที่ยังไม่ได้ตี (\${unbeaten.length}):\n\`;
     unbeaten.forEach((g, idx) => {
       const lvStr = g.level ? \`Lv.\${g.level}\` : 'ไม่ระบุ Lv.';
       const dropStr = g.dropType === 'inventory' ? 'ของเข้าตัว' : g.dropType === 'guild' ? 'เข้ากิล' : \`อื่นๆ (\${g.dropNote || '-'})\`;
-      text += \` \${idx + 1}. \${g.name} (\${lvStr}) - \${dropStr}\\n\`;
+      text += \` \${idx + 1}. \${g.name} (\${lvStr}) - \${dropStr}\n\`;
     });
-    text += \`\\n\`;
+    text += \`\n\`;
   }
 
   if (beaten.length > 0) {
-    text += \`✅ กิลด์ที่ตีแล้ว (\${beaten.length}):\\n\`;
+    text += \`✅ กิลด์ที่ตีแล้ว (\${beaten.length}):\n\`;
     beaten.forEach((g) => {
-      text += \` • \${g.name} (\${g.level ? \`Lv.\${g.level}\` : 'ไม่ระบุ Lv.'})\\n\`;
+      text += \` • \${g.name} (\${g.level ? \`Lv.\${g.level}\` : 'ไม่ระบุ Lv.'})\n\`;
     });
   }
 
-  text += \`\\n⏰ รีเซ็ตรอบถัดไป: วันพุธ เวลา 05:00 น. (UTC+7)\`;
+  text += \`\n⏰ รีเซ็ตรอบถัดไป: วันพุธ เวลา 05:00 น. (UTC+7)\`;
+
   const textarea = document.getElementById("exportTextArea");
   if (textarea) textarea.value = text;
 }
@@ -1142,3 +1753,4 @@ function escapeHtml(s) {
 
 document.addEventListener("DOMContentLoaded", initApp);
 `;
+export const STANDALONE_JS = STANDALONE_APP_JS;

@@ -10,6 +10,7 @@ export interface GuildRaidItem {
   dropType: DropType; // 'inventory' = ของเข้าตัว, 'guild' = เข้ากิล, 'other' = อื่นๆ
   dropNote?: string; // e.g. 'คนอื่นตี'
   avatarIcon: GuildIconType;
+  customImage?: string; // Base64 data URL from Ctrl+V or file upload
   note?: string;
   beatenAt?: number | null;
   updatedAt: number;

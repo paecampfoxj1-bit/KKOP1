@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { X, Plus, Pencil } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Plus, Pencil, Image as ImageIcon, Check, Trash2, Upload } from 'lucide-react';
 import { GuildRaidItem, GuildIconType, DropType, RaidStatus } from '../types';
 import { GuildAvatar } from './GuildAvatar';
+import { processImageFile } from '../utils/image';
 
 interface AddGuildModalProps {
   isOpen: boolean;
@@ -34,7 +35,11 @@ export const AddGuildModal: React.FC<AddGuildModalProps> = ({
   const [dropType, setDropType] = useState<DropType>('inventory');
   const [dropNote, setDropNote] = useState('');
   const [avatarIcon, setAvatarIcon] = useState<GuildIconType>('dragon');
+  const [customImage, setCustomImage] = useState<string>('');
   const [note, setNote] = useState('');
+  const [pasteSuccess, setPasteSuccess] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (guildToEdit) {
@@ -50,6 +55,7 @@ export const AddGuildModal: React.FC<AddGuildModalProps> = ({
       setDropType(guildToEdit.dropType);
       setDropNote(guildToEdit.dropNote || '');
       setAvatarIcon(guildToEdit.avatarIcon || 'dragon');
+      setCustomImage(guildToEdit.customImage || '');
       setNote(guildToEdit.note || '');
     } else {
       setName('');
@@ -59,9 +65,56 @@ export const AddGuildModal: React.FC<AddGuildModalProps> = ({
       setDropType('inventory');
       setDropNote('');
       setAvatarIcon('dragon');
+      setCustomImage('');
       setNote('');
     }
+    setPasteSuccess(false);
   }, [guildToEdit, isOpen]);
+
+  // Global paste handler when modal is open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePaste = async (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const file = items[i].getAsFile();
+          if (file) {
+            e.preventDefault();
+            try {
+              const base64 = await processImageFile(file);
+              setCustomImage(base64);
+              setPasteSuccess(true);
+              setTimeout(() => setPasteSuccess(false), 2500);
+            } catch (err) {
+              console.error('Error processing pasted image:', err);
+            }
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [isOpen]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const base64 = await processImageFile(file);
+        setCustomImage(base64);
+        setPasteSuccess(true);
+        setTimeout(() => setPasteSuccess(false), 2500);
+      } catch (err) {
+        console.error('Error uploading image:', err);
+      }
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -77,6 +130,7 @@ export const AddGuildModal: React.FC<AddGuildModalProps> = ({
       dropType,
       dropNote: dropType === 'other' ? dropNote.trim() || 'คนอื่นตี' : undefined,
       avatarIcon,
+      customImage: customImage || undefined,
       note: note.trim() || undefined,
       beatenAt: status === 'beaten' ? (guildToEdit?.beatenAt || Date.now()) : null,
     });
@@ -86,7 +140,8 @@ export const AddGuildModal: React.FC<AddGuildModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[#0e1424] border border-slate-800 rounded-2xl w-full max-w-md p-5 shadow-2xl relative">
+      <div className="bg-[#0e1424] border border-slate-800 rounded-2xl w-full max-w-md p-5 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+        {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
           <h3 className="text-base font-bold text-white flex items-center gap-2">
             {guildToEdit ? (
@@ -110,26 +165,101 @@ export const AddGuildModal: React.FC<AddGuildModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-3.5 text-xs">
-          {/* Avatar Icon Selector */}
+          {/* Avatar Icon & Ctrl+V Paste Area */}
           <div>
-            <label className="block text-slate-300 font-medium mb-1.5">
-              เลือกสัญลักษณ์กิลด์ (Emblem)
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-slate-300 font-medium">
+                เลือกสัญลักษณ์กิลด์ (Emblem)
+              </label>
+              {pasteSuccess && (
+                <span className="text-[11px] text-emerald-400 font-medium flex items-center gap-1 animate-pulse">
+                  <Check className="w-3 h-3" /> วางรูปภาพสำเร็จ!
+                </span>
+              )}
+            </div>
+
+            {/* Custom Image Preview & Paste Box */}
+            <div className="mb-2 p-2.5 rounded-xl border border-dashed border-indigo-500/40 bg-[#070b14] flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                {customImage ? (
+                  <div className="w-11 h-11 rounded-xl bg-slate-900 border border-indigo-500/50 p-0.5 shadow-md relative overflow-hidden shrink-0">
+                    <img src={customImage} alt="Custom" className="w-full h-full object-cover rounded-[10px]" />
+                  </div>
+                ) : (
+                  <div className="w-11 h-11 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 shrink-0">
+                    <ImageIcon className="w-5 h-5 text-indigo-400" />
+                  </div>
+                )}
+                <div>
+                  <div className="text-xs font-semibold text-white flex items-center gap-1.5">
+                    <span>{customImage ? 'ใช้รูปภาพที่วางเอง' : 'เปลี่ยนรูป: กด Ctrl+V ได้ทันที'}</span>
+                    {customImage && (
+                      <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-500/40 px-1.5 py-0.2 rounded-full">
+                        กำลังใช้งาน
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    {customImage
+                      ? 'กด Ctrl+V อีกครั้งเพื่อเปลี่ยนรูปใหม่'
+                      : 'คัดลอกรูปภาพแล้วกด Ctrl+V หรือคลิกปุ่มด้านขวา'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1">
+                {customImage ? (
+                  <button
+                    type="button"
+                    onClick={() => setCustomImage('')}
+                    className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                    title="ลบรูปภาพนี้ แล้วกลับไปใช้สัญลักษณ์เริ่มต้น"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-2.5 py-1.5 bg-[#0e1628] hover:bg-slate-800 text-indigo-300 border border-indigo-500/30 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <Upload className="w-3 h-3" />
+                    <span>เลือกไฟล์</span>
+                  </button>
+                )}
+              </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </div>
+
+            {/* Presets Grid */}
             <div className="grid grid-cols-4 gap-2">
-              {AVAILABLE_ICONS.map(ic => (
-                <button
-                  type="button"
-                  key={ic}
-                  onClick={() => setAvatarIcon(ic)}
-                  className={`p-2 rounded-xl flex items-center justify-center transition-all cursor-pointer border ${
-                    avatarIcon === ic
-                      ? 'border-indigo-500 bg-indigo-950/50 scale-105 shadow-md shadow-indigo-950/40'
-                      : 'border-slate-800 bg-[#0a0f1d] hover:border-slate-700'
-                  }`}
-                >
-                  <GuildAvatar icon={ic} className="w-9 h-9" />
-                </button>
-              ))}
+              {AVAILABLE_ICONS.map(ic => {
+                const isSelected = !customImage && avatarIcon === ic;
+                return (
+                  <button
+                    type="button"
+                    key={ic}
+                    onClick={() => {
+                      setAvatarIcon(ic);
+                      setCustomImage(''); // Switch to preset icon
+                    }}
+                    className={`p-2 rounded-xl flex items-center justify-center transition-all cursor-pointer border ${
+                      isSelected
+                        ? 'border-indigo-500 bg-indigo-950/50 scale-105 shadow-md shadow-indigo-950/40'
+                        : 'border-slate-800 bg-[#0a0f1d] hover:border-slate-700'
+                    }`}
+                  >
+                    <GuildAvatar icon={ic} className="w-9 h-9" />
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -144,7 +274,7 @@ export const AddGuildModal: React.FC<AddGuildModalProps> = ({
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="เช่น SOLOLEVELING, THAILAND, Crows"
-              className="w-full bg-[#070b14] border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 text-xs font-chakra tracking-wide"
+              className="w-full bg-[#070b14] border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-indigo-500 text-xs font-chakra tracking-wide uppercase"
             />
           </div>
 

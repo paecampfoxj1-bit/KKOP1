@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidGuild(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.status in ['unbeaten', 'beaten'] &&
+             data.dropType in ['inventory', 'guild', 'other'] &&
+             data.avatarIcon in ['dragon', 'lion', 'crows', 'devil', 'knight', 'phoenix', 'skull', 'wolf'] &&
+             data.updatedAt is number;
+    }
+
+    function isValidSystemState(data) {
+      return data.currentCycle is string && data.currentCycle.size() <= 50 &&
+             data.updatedAt is number;
+    }
+
+    // Guilds: Accessible to all members without login friction, real-time shared state
+    match /guilds/{guildId} {
+      allow get: if isValidId(guildId);
+      allow list: if true;
+      allow create, update: if isValidId(guildId) && isValidGuild(request.resource.data);
+      allow delete: if isValidId(guildId);
+    }
+
+    // System status: Wednesday reset cycle & sync
+    match /system/{systemDocId} {
+      allow get: if isValidId(systemDocId);
+      allow list: if true;
+      allow create, update: if isValidId(systemDocId) && isValidSystemState(request.resource.data);
+      allow delete: if isValidId(systemDocId);
+    }
+  }
+}

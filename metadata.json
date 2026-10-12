@@ -1,0 +1,6 @@
+{
+  "name": "KKop Guild Raid Attendance & Check-in",
+  "description": "ระบบเช็คชื่อสมาชิกกิลด์รองและบันทึกสถานะการลงเรดแคลนแบบเรียลไทม์ พร้อมระบบรีเซ็ตอัตโนมัติทุกวันพุธ 05:00 น.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

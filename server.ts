@@ -384,6 +384,118 @@ ${JSON.stringify(guilds, null, 2)}
   }
 });
 
+// 5.1 AI Vision Guild Card Extractor: Extract 1. Emblem box, 2. Name, 3. Level
+app.post('/api/ai/parse-guild-card', async (req: Request, res: Response) => {
+  try {
+    const { imageBase64, mimeType = 'image/png' } = req.body;
+
+    if (!imageBase64) {
+      return res.status(400).json({ success: false, message: 'กรุณาส่งรูปภาพเพื่อทำการดึงข้อมูล' });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({
+        success: false,
+        message: 'ไม่พบ GEMINI_API_KEY บนเซิร์ฟเวอร์',
+      });
+    }
+
+    const ai = new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        },
+      },
+    });
+
+    const cleanBase64 = imageBase64.replace(/^data:image\/[a-zA-Z+]+;base64,/, '');
+    const cleanMimeType = mimeType || 'image/png';
+
+    const systemPrompt = `คุณคือ AI ผู้เชี่ยวชาญการอ่านและวิเคราะห์ภาพหน้าจอข้อมูลกิลด์/แคลนในเกม (Clan Information / Guild Card)
+ภาพที่ผู้ใช้ส่งมาคือหน้าจอเกมในเมนู "แคลน" -> "ข้อมูลแคลน" (หน้าที่มีตราสัญลักษณ์กิลด์, ชื่อกิลด์, และเลเวลแคลน)
+
+หน้าที่สำคัญของคุณคืออ่านภาพและดึงข้อมูล 3 อย่างต่อไปนี้อย่างแม่นยำที่สุด:
+1. รูปตราสัญลักษณ์หรือโลโก้กิลด์ (Guild Emblem):
+   - ระบุกรอบพิกัดสี่เหลี่ยม [ymin, xmin, ymax, xmax] ของตราสัญลักษณ์กิลด์ (เช่น รูปกรงเล็บ, รูปดาวแปดแฉก/เพชร, มังกร, สัตว์เทพ หรือสัญลักษณ์ที่อยู่เหนือชื่อกิลด์) ในสเกล 0-1000
+   - กรอบพิกัดต้องครอบคลุมตัวตราสัญลักษณ์กิลด์ให้พอดี (ไม่รวมชื่อกิลด์ด้านล่าง)
+2. ชื่อกิลด์ (Guild Name):
+   - ข้อความชื่อกิลด์/แคลนที่อยู่ใต้ตราสัญลักษณ์ (เช่น "Love111", "vietnamclan", "KhaiTitan") อ่านตัวอักษรพิมพ์เล็ก-พิมพ์ใหญ่ให้ตรงตามจริง
+3. เลเวลกิลด์ (Guild Level):
+   - ตัวเลขอันดับเลเวลของกิลด์/แคลน เช่น ในส่วน "เลเวลแคลน เลเวล 18" ให้ดึงเฉพาะตัวเลขจำนวนเต็ม 18 หรือหากเป็น "เลเวล 9" ให้ดึง 9
+
+ส่งคืน JSON ตาม Schema ที่กำหนด`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.8-flash',
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              mimeType: cleanMimeType,
+              data: cleanBase64,
+            },
+          },
+          {
+            text: 'ช่วยอ่านภาพหน้าจอข้อมูลแคลนนี้ แล้วดึง 1. พิกัดรูปตรากิลด์ [ymin, xmin, ymax, xmax], 2. ชื่อกิลด์, 3. เลเวลกิลด์',
+          },
+        ],
+      },
+      config: {
+        systemInstruction: systemPrompt,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            guildName: {
+              type: Type.STRING,
+              description: 'ชื่อกิลด์ที่พบ เช่น "Love111" หรือ "vietnamclan"',
+            },
+            guildLevel: {
+              type: Type.INTEGER,
+              description: 'เลเวลของกิลด์/แคลน (ตัวเลขจำนวนเต็ม เช่น 18 หรือ 9)',
+            },
+            emblemBox: {
+              type: Type.ARRAY,
+              description: 'พิกัดกรอบรูปตราสัญลักษณ์กิลด์ [ymin, xmin, ymax, xmax] ในสเกล 0-1000',
+              items: { type: Type.INTEGER },
+            },
+            confidence: {
+              type: Type.STRING,
+              description: 'ความมั่นใจ: "high", "medium", "low"',
+            },
+            rawDetails: {
+              type: Type.STRING,
+              description: 'รายละเอียดข้อความที่ตรวจพบในหน้าจอ',
+            },
+          },
+          required: ['guildName', 'guildLevel', 'emblemBox'],
+        },
+      },
+    });
+
+    const responseText = response.text || '{}';
+    let parsedResult;
+    try {
+      parsedResult = JSON.parse(responseText);
+    } catch {
+      parsedResult = { guildName: '', guildLevel: null, emblemBox: [100, 200, 450, 500] };
+    }
+
+    res.json({
+      success: true,
+      data: parsedResult,
+    });
+  } catch (error: any) {
+    console.error('Gemini guild card parse error:', error);
+    res.status(500).json({
+      success: false,
+      message: error?.message || 'เกิดข้อผิดพลาดในการดึงข้อมูลจากรูปภาพ',
+    });
+  }
+});
+
 // 6. Real-time Live Sync Stream via Server-Sent Events (SSE)
 app.get('/api/events', (req: Request, res: Response) => {
   res.setHeader('Content-Type', 'text/event-stream');

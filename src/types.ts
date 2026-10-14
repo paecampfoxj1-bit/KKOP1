@@ -8,10 +8,10 @@ export interface GuildRaidItem {
   level: number | null; // e.g. 12, null for 'ไม่ระบุเลเวล'
   status: RaidStatus; // 'unbeaten' = ยังไม่ได้ตี, 'beaten' = ตีแล้ว
   dropType: DropType; // 'inventory' = ของเข้าตัว, 'guild' = เข้ากิล, 'other' = อื่นๆ
-  dropNote?: string; // e.g. 'คนอื่นตี'
+  dropNote?: string | null; // e.g. 'คนอื่นตี'
   avatarIcon: GuildIconType;
-  customImage?: string; // Base64 data URL from Ctrl+V or file upload
-  note?: string;
+  customImage?: string | null; // Base64 data URL from Ctrl+V or file upload
+  note?: string | null;
   beatenAt?: number | null;
   updatedAt: number;
 }
@@ -65,4 +65,12 @@ export interface AiRaidCheckResult {
   unbeatenRemaining?: string[];
   beatenGuilds?: string[];
   advice?: string;
+}
+
+export interface ParsedGuildCardResult {
+  guildName: string;
+  guildLevel: number | null;
+  emblemBox?: [number, number, number, number];
+  confidence?: 'high' | 'medium' | 'low';
+  rawDetails?: string;
 }

@@ -52,7 +52,10 @@ export const QuickPasteImageModal: React.FC<QuickPasteImageModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                เลือกกิลด์ที่ต้องการเปลี่ยนรูปภาพ หรือสร้างกิลด์ใหม่ด้วยรูปนี้
+                เลือกกิลด์ที่ต้องการเปลี่ยนรูปภาพ หรือกดเพิ่มกิลด์ใหม่ด้วยรูปนี้
+              </p>
+              <p className="text-[11px] text-amber-300/90 mt-1 flex items-center gap-1">
+                <span>📌 ให้ส่งหน้านี้มาสำหรับเพิ่มกิลด์: เมนู "แคลน" ➔ "ข้อมูลแคลน"</span>
               </p>
             </div>
           </div>
@@ -123,10 +126,10 @@ export const QuickPasteImageModal: React.FC<QuickPasteImageModalProps> = ({
           <button
             type="button"
             onClick={() => onCreateNewWithImage(pastedImage)}
-            className="px-3 py-2 text-xs font-medium bg-[#12192e] hover:bg-[#1a2542] text-indigo-300 border border-indigo-500/30 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="px-3.5 py-2 text-xs font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl flex items-center gap-1.5 transition-all shadow-md shadow-indigo-600/30 cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
-            <span>สร้างกิลด์ใหม่ด้วยรูปนี้</span>
+            <Sparkles className="w-4 h-4 text-amber-300" />
+            <span>+ เพิ่มกิลด์ใหม่ (AI ดึง รูป+ชื่อ+เลเวล ให้อัตโนมัติ)</span>
           </button>
 
           <button

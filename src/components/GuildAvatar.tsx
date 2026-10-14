@@ -3,7 +3,7 @@ import { GuildIconType } from '../types';
 
 interface GuildAvatarProps {
   icon: GuildIconType;
-  customImage?: string;
+  customImage?: string | null;
   className?: string;
 }
 

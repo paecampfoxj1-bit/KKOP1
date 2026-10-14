@@ -19,7 +19,7 @@ import { DeployGuide } from './components/DeployGuide';
 import { calculateWednesdayCycleInfo } from './utils/cycle';
 import { processImageFile } from './utils/image';
 import { GuildRaidItem, DropType, WeeklyCycleInfo, FirebaseConnectionConfig } from './types';
-import { UsersRound, Share2, Copy, Check, X, Camera } from 'lucide-react';
+import { UsersRound, Share2, Copy, Check, X, Camera, Sparkles, Plus } from 'lucide-react';
 import {
   subscribeToFirestore,
   syncAllGuildsToFirestore,
@@ -363,14 +363,15 @@ export default function App() {
     setIsChangePictureModalOpen(true);
   };
 
-  const handleSaveGuildImage = (guildId: string, customImage: string | undefined) => {
+  const handleSaveGuildImage = (guildId: string, customImage: string | null | undefined) => {
     const target = guilds.find(g => g.id === guildId);
+    const cleanImage = customImage || null;
     const updated = guilds.map(g =>
-      g.id === guildId ? { ...g, customImage, updatedAt: Date.now() } : g
+      g.id === guildId ? { ...g, customImage: cleanImage, updatedAt: Date.now() } : g
     );
     saveGuilds(updated);
     addToast(
-      customImage
+      cleanImage
         ? `อัปเดตรูปภาพของกิลด์ "${target?.name || ''}" สำเร็จ!`
         : `คืนค่าสัญลักษณ์เริ่มต้นของกิลด์ "${target?.name || ''}" แล้ว`,
       'success'
@@ -492,14 +493,14 @@ export default function App() {
           ? {
               ...g,
               name: data.name,
-              level: data.level,
+              level: data.level != null ? Number(data.level) : null,
               status: data.status,
               dropType: data.dropType,
-              dropNote: data.dropNote,
+              dropNote: data.dropNote ?? null,
               avatarIcon: data.avatarIcon,
-              customImage: data.customImage,
-              note: data.note,
-              beatenAt: data.beatenAt ?? g.beatenAt,
+              customImage: data.customImage ?? null,
+              note: data.note ?? null,
+              beatenAt: data.beatenAt ?? g.beatenAt ?? null,
               updatedAt: Date.now(),
             }
           : g
@@ -511,14 +512,14 @@ export default function App() {
       const newGuild: GuildRaidItem = {
         id: 'g_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
         name: data.name,
-        level: data.level,
+        level: data.level != null ? Number(data.level) : null,
         status: data.status,
         dropType: data.dropType,
-        dropNote: data.dropNote,
+        dropNote: data.dropNote ?? null,
         avatarIcon: data.avatarIcon,
-        customImage: data.customImage,
-        note: data.note,
-        beatenAt: data.beatenAt || null,
+        customImage: data.customImage ?? null,
+        note: data.note ?? null,
+        beatenAt: data.beatenAt ?? null,
         updatedAt: Date.now(),
       };
       saveGuilds([...guilds, newGuild]);
@@ -701,25 +702,44 @@ export default function App() {
               onImageDroppedOrPasted={img => handleOpenAiRaidCheck(img)}
             />
 
-            {/* Hint Banner for Ctrl+V Image Paste */}
-            <div className="p-3 bg-gradient-to-r from-indigo-950/60 via-[#0e162d] to-purple-950/40 border border-indigo-500/30 rounded-2xl flex items-center justify-between gap-3 text-xs flex-wrap">
-              <div className="flex items-center gap-2.5">
-                <div className="p-1.5 bg-indigo-500/20 rounded-lg text-indigo-400">
-                  <Camera className="w-4 h-4" />
+            {/* Instruction Banner for Adding Guild and Pasting Images */}
+            <div className="p-3.5 bg-gradient-to-r from-indigo-950/70 via-[#0e162d] to-purple-950/50 border border-indigo-500/40 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs shadow-md">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 rounded-xl text-indigo-400 shrink-0 mt-0.5 sm:mt-0">
+                  <Sparkles className="w-5 h-5 text-amber-400" />
                 </div>
-                <div>
-                  <span className="font-semibold text-white">เปลี่ยนรูปภาพได้ง่ายๆ:</span>{' '}
-                  <span className="text-slate-300">
-                    ชี้เมาส์ที่การ์ดกิลด์ แล้วกด <kbd className="bg-slate-900 border border-slate-700 px-1.5 py-0.5 rounded text-[11px] font-mono text-indigo-300 shadow-xs">Ctrl + V</kbd> บนแป้นพิมพ์เพื่อวางรูปภาพได้ทันที หรือคลิกที่รูปเพื่อเลือกไฟล์
-                  </span>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-amber-300 text-xs sm:text-sm">
+                      📌 ให้ส่งหน้านี้มาสำหรับเพิ่มกิลด์: เมนู "แคลน" ➔ "ข้อมูลแคลน"
+                    </span>
+                    <span className="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full font-medium">
+                      AI อ่านรูป & ดึงข้อมูลอัตโนมัติ
+                    </span>
+                  </div>
+                  <p className="text-slate-300 text-[11px] leading-relaxed">
+                    แคปหน้าจอเกมจากหน้า <strong>"ข้อมูลแคลน"</strong> แล้วกด <kbd className="bg-slate-900 border border-slate-700 px-1.5 py-0.5 rounded text-[10px] font-mono text-indigo-300 shadow-xs">Ctrl + V</kbd> หรือคลิก <strong>"+ เพิ่มกิลด์ใหม่"</strong> ระบบจะอ่านและลงข้อมูล 3 อย่างให้ทันที: <span className="text-indigo-200 font-semibold">❶ รูปตรากิลด์ (ตัดตราให้)</span> &bull; <span className="text-indigo-200 font-semibold">❷ ชื่อกิลด์</span> &bull; <span className="text-indigo-200 font-semibold">❸ เลเวลกิลด์</span>
+                  </p>
                 </div>
               </div>
-              <button
-                onClick={handlePasteImageButtonClick}
-                className="text-[11px] text-indigo-300 hover:text-white underline cursor-pointer"
-              >
-                ดูวิธีกดวางรูปภาพ
-              </button>
+              <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+                <button
+                  onClick={() => {
+                    setGuildToEdit(null);
+                    setIsAddModalOpen(true);
+                  }}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>เพิ่มกิลด์</span>
+                </button>
+                <button
+                  onClick={handlePasteImageButtonClick}
+                  className="px-3 py-1.5 bg-[#0a0f1d] hover:bg-slate-800 text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-medium cursor-pointer"
+                >
+                  ดูตัวอย่าง
+                </button>
+              </div>
             </div>
 
             {/* 2-Column Cards Grid matching screenshot */}

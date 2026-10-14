@@ -8,7 +8,7 @@ interface ChangePictureModalProps {
   isOpen: boolean;
   onClose: () => void;
   guild: GuildRaidItem | null;
-  onSaveImage: (guildId: string, customImage: string | undefined) => void;
+  onSaveImage: (guildId: string, customImage: string | null | undefined) => void;
   initialPastedImage?: string; // If user pressed Ctrl+V globally before choosing guild
 }
 
@@ -19,7 +19,7 @@ export const ChangePictureModal: React.FC<ChangePictureModalProps> = ({
   onSaveImage,
   initialPastedImage,
 }) => {
-  const [currentImage, setCurrentImage] = useState<string | undefined>(guild?.customImage);
+  const [currentImage, setCurrentImage] = useState<string | null | undefined>(guild?.customImage || null);
   const [pasteSuccess, setPasteSuccess] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -30,7 +30,7 @@ export const ChangePictureModal: React.FC<ChangePictureModalProps> = ({
       setPasteSuccess(true);
       setTimeout(() => setPasteSuccess(false), 2500);
     } else {
-      setCurrentImage(guild?.customImage);
+      setCurrentImage(guild?.customImage || null);
       setPasteSuccess(false);
     }
   }, [guild, initialPastedImage, isOpen]);

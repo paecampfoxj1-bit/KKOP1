@@ -119,6 +119,7 @@ export const GuildFiltersBar: React.FC<GuildFiltersBarProps> = ({
           <button
             onClick={onOpenAddModal}
             className="px-4 py-2 bg-gradient-to-r from-indigo-600 via-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-lg shadow-indigo-600/30 flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap"
+            title="เพิ่มกิลด์ใหม่ (รองรับการวางรูปหน้าจอ 'แคลน > ข้อมูลแคลน' เพื่อให้ AI ดึง รูป, ชื่อ, และเลเวล ให้อัตโนมัติ)"
           >
             <Plus className="w-4 h-4" />
             <span>เพิ่มกิลด์ใหม่</span>

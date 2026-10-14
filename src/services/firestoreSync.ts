@@ -16,6 +16,35 @@ const SYSTEM_COLLECTION = 'system';
 const SYSTEM_STATE_DOC = 'current';
 
 /**
+ * Sanitizes a guild object for Firestore to guarantee no field has an `undefined` value,
+ * which Firestore strictly forbids and throws WriteBatch.set() errors on.
+ */
+export function sanitizeGuildForFirestore(guild: any): Record<string, any> {
+  const sanitized: Record<string, any> = {
+    id: String(guild.id || ''),
+    name: String(guild.name || ''),
+    level: guild.level !== undefined && guild.level !== null && guild.level !== '' ? Number(guild.level) : null,
+    status: guild.status === 'beaten' ? 'beaten' : 'unbeaten',
+    dropType: guild.dropType || 'inventory',
+    dropNote: guild.dropNote !== undefined && guild.dropNote !== null ? String(guild.dropNote) : null,
+    avatarIcon: guild.avatarIcon || 'dragon',
+    customImage: guild.customImage !== undefined && guild.customImage !== null ? String(guild.customImage) : null,
+    note: guild.note !== undefined && guild.note !== null ? String(guild.note) : null,
+    beatenAt: typeof guild.beatenAt === 'number' ? guild.beatenAt : null,
+    updatedAt: typeof guild.updatedAt === 'number' ? guild.updatedAt : Date.now(),
+  };
+
+  // Extra safety: iterate through keys and ensure NO value is undefined
+  for (const key of Object.keys(sanitized)) {
+    if (sanitized[key] === undefined) {
+      sanitized[key] = null;
+    }
+  }
+
+  return sanitized;
+}
+
+/**
  * Initializes test connection and returns unsubscribe for live sync
  */
 export function subscribeToFirestore(
@@ -40,7 +69,7 @@ export function subscribeToFirestore(
           const batch = writeBatch(db);
           for (const guild of initialDefaultGuilds) {
             const guildRef = doc(db, GUILDS_COLLECTION, guild.id);
-            batch.set(guildRef, guild);
+            batch.set(guildRef, sanitizeGuildForFirestore(guild));
           }
           await batch.commit();
         } catch (err) {
@@ -99,7 +128,7 @@ export function subscribeToFirestore(
 export async function syncGuildToFirestore(guild: GuildRaidItem): Promise<void> {
   const guildRef = doc(db, GUILDS_COLLECTION, guild.id);
   try {
-    await setDoc(guildRef, guild, { merge: true });
+    await setDoc(guildRef, sanitizeGuildForFirestore(guild), { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, `${GUILDS_COLLECTION}/${guild.id}`);
   }
@@ -113,7 +142,7 @@ export async function syncAllGuildsToFirestore(guilds: GuildRaidItem[]): Promise
     const batch = writeBatch(db);
     for (const g of guilds) {
       const ref = doc(db, GUILDS_COLLECTION, g.id);
-      batch.set(ref, g, { merge: true });
+      batch.set(ref, sanitizeGuildForFirestore(g), { merge: true });
     }
     await batch.commit();
   } catch (error) {
@@ -153,7 +182,7 @@ export async function syncCycleKeyToFirestore(cycleKey: string, resetGuilds?: Gu
     if (resetGuilds && resetGuilds.length > 0) {
       for (const g of resetGuilds) {
         const ref = doc(db, GUILDS_COLLECTION, g.id);
-        batch.set(ref, g, { merge: true });
+        batch.set(ref, sanitizeGuildForFirestore(g), { merge: true });
       }
     }
 
